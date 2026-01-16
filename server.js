@@ -14,7 +14,7 @@ const multer = require('multer');
 const compression = require('compression');
 const NodeCache = require('node-cache');
 const axios = require('axios');
-const siteName = process.env.SITE_NAME || 'RajaHentai';
+const siteName = process.env.SITE_NAME || 'RajaAnime';
 
 
 // --- Custom Modules & Utils ---
@@ -41,7 +41,7 @@ const Report = require('./models/Report');
 
 // --- Environment Variables & Constants ---
 const PORT = process.env.PORT || 3000;
-const SITE_NAME = process.env.SITE_NAME || 'RajaHentai';
+const SITE_NAME = process.env.SITE_NAME || 'RajaAnime';
 const SITE_URL = process.env.SITE_URL || `http://localhost:${PORT}`;
 const DB_URI = process.env.DB_URI;
 const SESSION_SECRET = process.env.SESSION_SECRET || 'secret_key';
@@ -922,8 +922,8 @@ app.get('/anime-list', async (req, res) => {
 
     const titleSuffix = page > 1 ? ` - Halaman ${page}`: '';
     res.render('anime-list', {
-      animes: encodeAnimeSlugs(animes), page: 'anime-list', pageTitle: `Hentai List${titleSuffix} - ${SITE_NAME}`,
-      pageDescription: `Kumpulan Hentai Subtitle Indonesia Terbaru di ${SITE_NAME}.`, pageImage: '',
+      animes: encodeAnimeSlugs(animes), page: 'anime-list', pageTitle: `Anime List${titleSuffix} - ${SITE_NAME}`,
+      pageDescription: `Kumpulan Anime Subtitle Indonesia Terbaru di ${SITE_NAME}.`, pageImage: '',
       pageUrl: SITE_URL + `/anime-list${page > 1 ? `?page=${page}`: ''}`,
       currentPage: page, totalPages: Math.ceil(totalCount / ITEMS_PER_PAGE), baseUrl: '/anime-list', totalCount, latestSeries: encodeAnimeSlugs(latestSeries)
     });
@@ -964,7 +964,7 @@ const dynamicListHandler = async (req, res, type, field, paramName, titlePrefix)
     const titleSuffix = page > 1 ? ` - Halaman ${page}`: '';
     res.render('list', {
       animes: encodeAnimeSlugs(animes), pageTitle: `${titlePrefix}: ${originalValue}${titleSuffix} - ${SITE_NAME}`,
-      query: '', page: 'list', pageDescription: `${titlePrefix} ${originalValue} Hentai Sub Indo.`, pageImage: '',
+      query: '', page: 'list', pageDescription: `${titlePrefix} ${originalValue} Anime Sub Indo.`, pageImage: '',
       pageUrl: SITE_URL + `/${req.route.path.split('/')[1]}/${slugVal}`,
       currentPage: page, totalPages: Math.ceil(totalCount / ITEMS_PER_PAGE), baseUrl: `/${req.route.path.split('/')[1]}/${slugVal}`, totalCount
     });
@@ -1098,7 +1098,7 @@ app.get('/random', async (req, res) => {
 
 // --- Legacy Redirects ---
 app.get('/category/:slug', (req, res) => res.redirect(301, `/anime/${req.params.slug}`));
-app.get('/hentai/:slug', (req, res) => res.redirect(301, `/anime/${req.params.slug}`));
+app.get('/Anime/:slug', (req, res) => res.redirect(301, `/anime/${req.params.slug}`));
 app.get('/trending/page/:page', (req, res) => res.redirect(301, '/trending'));
 app.get('/anime-list/', (req, res) => res.redirect(301, '/anime-list'));
 app.get('/nonton/:slug', (req, res) => {
