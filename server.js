@@ -68,7 +68,47 @@ if (!process.env.RENDER_DISK_PATH && !fs.existsSync(UPLOAD_DISK_PATH)) {
     recursive: true
   });
 }
+app.locals.cleanTitle = (title) => {
+  if (!title) return '';
+  
+  let cleaned = title;
 
+  const patterns = [
+    // 1. Hapus "Subtitle Indonesia" atau "Sub Indo" di AKHIR kalimat
+    // Menangani variasi: " - Sub Indo", " : Subtitle Indonesia", "(Sub Indo)"
+    /\s*[\(\[\-\|:]?\s*(Subtitle Indonesia|Sub Indo|Sub lndo)\s*[\)\]]?\s*$/ig,
+
+    // 2. Hapus "Sub Indo :" atau "Subtitle Indonesia :" di AWAL atau TENGAH kalimat
+    // Contoh: "Sub Indo : Episode..."
+    /\s*(Sub\s*Indo|Subtitle\s*Indonesia)\s*[:|-]\s*/ig,
+
+    // 3. Hapus Pola Episode Range dengan status (End)
+    // Contoh: "Episode 1 – 13 (End)", "(Episode 1-12)", "[Episode 1 - 24]"
+    // Regex ini menangkap kata "Episode", diikuti angka/strip, dan opsional "(End)"
+    /\s*[\(\[]?\s*Episode\s*[\d\s\–\-\.]+(\s*\(\s*End\s*\))?[\)\]]?/ig,
+
+    // 4. Hapus Pola BD (Blu-ray)
+    // Contoh: "BD (Episode 1-12)", "BD Batch"
+    /\s*BD\s*[\(\[]\s*Episode\s*[\d\s\–\-\.]*[\)\]]/ig, // BD dengan episode
+    /\s+BD\s*$/ig, // BD sendiri di akhir
+    /\s+BD\s+/ig,  // BD sendiri di tengah
+
+    // 5. Hapus Batch
+    /\s*[\(\[]\s*Batch\s*[\)\]]/ig,
+    /\s*Batch\s*/ig
+  ];
+
+  patterns.forEach(regex => {
+    cleaned = cleaned.replace(regex, '');
+  });
+
+  // Pembersihan Akhir:
+  // Hapus tanda baca sisa di ujung string (misal: "Naruto :")
+  cleaned = cleaned.replace(/\s*[:|-]\s*$/, '');
+  
+  // Hapus spasi ganda menjadi satu spasi
+  return cleaned.replace(/\s+/g, ' ').trim();
+};
 const storage = multer.memoryStorage();
 const fileFilter = (req, file, cb) => {
   const allowedTypes = ['image/jpeg',
@@ -95,6 +135,7 @@ const upload = multer( {
 * MIDDLEWARE SETUP
 * =================================================================================
 */
+
 app.use(compression()); // Compress responses
 app.use(express.static(path.join(__dirname, 'public'))); // Static public folder
 app.use(`/${UPLOAD_WEB_PATH}`, express.static(UPLOAD_DISK_PATH)); // Static images folder
