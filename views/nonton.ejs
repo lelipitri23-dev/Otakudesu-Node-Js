@@ -1,15 +1,33 @@
-<%- include('partials/header', {
-  /* header */
-}) %>
+<%- include('partials/header', { /* header */ }) %>
 
 <%
 // Logic Filter Stream (Hapus 'bonus' jika ada)
 const filteredStreams = data.streaming ? data.streaming.filter(stream => stream.name.toLowerCase() !== 'bonus'): [];
+
+const safeString = (str) => {
+  return str ? str.replace(/["\\]/g, '\\$&').replace(/\n/g, ' ') : '';
+};
 %>
 
-<main class="flex-1 w-full min-w-0 relative z-10">
-  <article class="bg-card rounded-lg shadow-md border border-[#33303f] overflow-hidden mb-6">
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "TVEpisode",
+  "name": "<%= safeString(data.title) %>",
+  "description": "<%= (typeof parentAnime !== 'undefined' && parentAnime.synopsis) ? safeString(parentAnime.synopsis.substring(0, 160)) : safeString(data.title) %>...",
+  "image": "<%= pageImage %>",
+  "url": "<%= pageUrl %>",
+  "partOfSeries": {
+    "@type": "TVSeries",
+    "name": "<%= (typeof parentAnime !== 'undefined') ? safeString(parentAnime.title) : '' %>",
+    "image": "<%= (typeof parentAnime !== 'undefined') ? parentAnime.imageUrl : '' %>"
+  }
+}
+</script>
 
+<main class="flex-1 w-full min-w-0 relative z-10">
+
+  <article class="bg-card rounded-lg shadow-md border border-[#33303f] overflow-hidden mb-6">
     <header class="p-4 border-b border-[#33303f]">
       <h1 class="text-xl md:text-2xl font-bold text-[var(--text-main)] mb-2"><%= data.title %></h1>
     </header>
@@ -17,28 +35,16 @@ const filteredStreams = data.streaming ? data.streaming.filter(stream => stream.
     <div class="bg-black relative w-full aspect-video">
       <div id="embed_holder" class="w-full h-full">
         <% if (filteredStreams.length > 0) {
-          // Ambil stream pertama sebagai default
           const firstStream = filteredStreams[0];
-
-          // Server mengirim URL dalam bentuk Base64. Kita decode di EJS (server-side render) untuk Iframe SRC
-          // ATAU jika player mengharuskan base64, kita biarkan.
-          // Asumsi: Server mengirim Base64 untuk keamanan.
-          // Kita decode untuk mendapatkan nilai asli (bisa berupa URL langsung atau string 'AJAX:...')
-
           const decodedUrl = Buffer.from(firstStream.url, 'base64').toString('utf8');
           let iframeSrc = '';
 
-          // Jika decoded URL adalah URL http valid
           if (decodedUrl.startsWith('http')) {
-            // Gunakan player wrapper untuk menyembunyikan URL asli
             iframeSrc = `/player?url=${firstStream.url}`;
           } else {
-            // Jika formatnya 'AJAX:...' atau lainnya, mungkin perlu penanganan khusus
-            // Untuk sekarang anggap itu URL langsung yang aman ditampilkan
             iframeSrc = decodedUrl;
           }
 
-          // Encode ulang iframe src ke base64 untuk 'data-default' agar script player bisa membacanya
           const iframeTag = `<iframe src="${iframeSrc}" frameborder="0" scrolling="no" width="100%" height="100%" allowfullscreen="true"></iframe>`;
           const base64Iframe = Buffer.from(iframeTag).toString('base64');
           %>
@@ -59,7 +65,6 @@ const filteredStreams = data.streaming ? data.streaming.filter(stream => stream.
     </div>
 
     <div class="bg-darker p-3 flex flex-col lg:flex-row justify-between items-center gap-4 border-t border-[#33303f]">
-
       <div class="flex items-center gap-2 w-full lg:w-auto">
         <select class="bg-card text-[var(--text-main)] text-sm border border-[#444] rounded px-3 py-1.5 w-full md:w-auto focus:border-primary" onchange="loadMi(this.options[this.selectedIndex])">
           <% filteredStreams.forEach((stream, index) => {
@@ -78,24 +83,51 @@ const filteredStreams = data.streaming ? data.streaming.filter(stream => stream.
       </div>
 
       <div class="flex items-center gap-2">
-        <% if (nav.prev) {
-          %>
+        <% if (nav.prev) { %>
           <a href="<%= nav.prev.url %>" class="bg-primary hover:bg-primary-hover text-white text-xs font-bold px-4 py-2 rounded">« Prev</a>
-          <%
-        } %>
+        <% } %>
         <a href="<%= nav.all %>" class="bg-card hover:bg-primary hover:text-white text-[var(--text-main)] text-xs font-bold px-4 py-2 rounded border border-[#444]">Semua</a>
-        <% if (nav.next) {
-          %>
+        <% if (nav.next) { %>
           <a href="<%= nav.next.url %>" class="bg-primary hover:bg-primary-hover text-white text-xs font-bold px-4 py-2 rounded">Next »</a>
-          <%
-        } %>
+        <% } %>
       </div>
     </div>
+  </article>
 
+  <% if (data.downloads && data.downloads.length > 0) { %>
+    <section class="bg-card rounded-lg shadow-md border border-[#33303f] overflow-hidden mb-6">
+      <div class="p-4 border-b border-[#33303f]">
+        <h3 class="text-sm font-bold text-primary uppercase tracking-wider">
+          <i class="fas fa-download mr-1"></i> Link Download
+        </h3>
+      </div>
+      <div class="p-5 bg-darker">
+        <div class="space-y-3">
+          <% data.downloads.forEach(qualityGroup => { %>
+            <div class="flex flex-wrap items-center gap-2 bg-[#1f1d2b] p-2 rounded border border-[#444]">
+              <span class="bg-primary text-white text-[10px] font-bold px-2 py-1 rounded min-w-[50px] text-center">
+                <%= qualityGroup.quality %>
+              </span>
+              <% qualityGroup.links.forEach(link => { %>
+                <a href="/safelink?url=<%= link.url %>" target="_blank" class="text-[var(--text-main)] hover:text-primary text-xs font-medium bg-card px-3 py-1 rounded border border-[#555] hover:border-primary transition-all">
+                  <%= link.host %>
+                </a>
+              <% }) %>
+            </div>
+          <% }) %>
+        </div>
+      </div>
+    </section>
+  <% } %>
+
+  <section class="bg-card rounded-lg shadow-md border border-[#33303f] overflow-hidden mb-6">
+    <div class="p-4 border-b border-[#33303f]">
+      <h3 class="text-sm font-bold text-primary uppercase tracking-wider">Sinopsis & Info</h3>
+    </div>
     <div class="p-5">
       <div class="flex flex-col md:flex-row gap-6">
-
-        <div class="w-full md:w-[200px] flex-shrink-0 mx-auto md:mx-0">
+        
+        <div class="w-[140px] md:w-[200px] flex-shrink-0 mx-auto md:mx-0">
           <img src="<%= pageImage %>" class="w-full rounded-md shadow-lg object-cover border border-[#33303f]" alt="<%= data.title %>">
           <div class="text-center mt-4">
             <button class="w-full bg-[#d9534f] hover:bg-red-700 text-white px-4 py-2 rounded text-xs font-bold shadow-md">
@@ -105,51 +137,33 @@ const filteredStreams = data.streaming ? data.streaming.filter(stream => stream.
         </div>
 
         <div class="flex-1 min-w-0">
-          <% if (data.downloads && data.downloads.length > 0) {
-            %>
-            <div class="mb-8 border-b border-[#33303f] pb-6">
-              <h4 class="text-xs font-bold text-primary mb-3 uppercase tracking-wider border-b border-[#33303f] pb-2">
-                <i class="fas fa-download mr-1"></i> Link Download
-              </h4>
-
-              <div class="space-y-3">
-                <% data.downloads.forEach(qualityGroup => {
-                  %>
-                  <div class="flex flex-wrap items-center gap-2 bg-darker p-2 rounded border border-[#444]">
-                    <span class="bg-primary text-white text-[10px] font-bold px-2 py-1 rounded min-w-[50px] text-center">
-                      <%= qualityGroup.quality %>
-                    </span>
-                    <% qualityGroup.links.forEach(link => {
-                      %>
-                      <a href="/safelink?url=<%= link.url %>" target="_blank" class="text-[var(--text-main)] hover:text-primary text-xs font-medium bg-card px-3 py-1 rounded border border-[#555] hover:border-primary transition-all">
-                        <%= link.host %>
-                      </a>
-                      <%
-                    }) %>
-                  </div>
-                  <%
-                }) %>
-              </div>
-            </div>
-            <%
-          } %>
-
-          <div class="mb-8">
-            <h3 class="text-xs font-bold text-primary mb-2 uppercase tracking-wider border-b border-[#33303f] pb-2">Sinopsis</h3>
-            <p class="text-xs sm:text-sm text-gray-400 leading-relaxed text-justify">
-              <%= (typeof parentAnime !== 'undefined' && parentAnime.synopsis) ? parentAnime.synopsis: '...' %>
-            </p>
-          </div>
-
+          <p class="text-sm text-gray-300 leading-relaxed text-justify">
+            <%= (typeof parentAnime !== 'undefined' && parentAnime.synopsis) ? parentAnime.synopsis: 'Sinopsis belum tersedia untuk anime ini...' %>
+          </p>
         </div>
       </div>
     </div>
-  </article>
+  </section>
+
+  <section class="bg-card rounded-lg shadow-md border border-[#33303f] overflow-hidden mb-6">
+    <div class="p-4 border-b border-[#33303f] bg-darker/30">
+      <h3 class="text-sm font-bold text-[var(--text-main)]">Review <%= data.title %></h3>
+    </div>
+    <div class="p-5 bg-darker/50">
+      <p class="text-xs text-gray-400 leading-relaxed text-justify">
+        Tonton streaming <strong><%= data.title %></strong> subtitle Indonesia terbaru. 
+        <% if (typeof parentAnime !== 'undefined') { %>
+          Anime ini bercerita tentang <em><%= parentAnime.title %></em> yang semakin seru di episode ini.
+        <% } %>
+        Dapatkan kualitas video terbaik mulai dari 360p, 480p, 720p, hingga 1080p hanya di <%= siteName %>. 
+        Jangan lupa untuk bookmark dan bagikan halaman ini kepada teman-temanmu agar tidak ketinggalan update episode selanjutnya.
+      </p>
+    </div>
+  </section>
+
 </main>
 
-<%- include('partials/sidebar', {
-  page: page
-}) %>
+<%- include('partials/sidebar', { page: page }) %>
 
 <script>
   function loadMi(el) {
@@ -171,6 +185,5 @@ const filteredStreams = data.streaming ? data.streaming.filter(stream => stream.
     }
   }
 </script>
-<%- include('partials/footer', {
-  page: page
-}) %>
+
+<%- include('partials/footer', { page: page }) %>
