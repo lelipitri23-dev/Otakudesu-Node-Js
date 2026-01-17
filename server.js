@@ -1173,13 +1173,13 @@ app.get('/api/tahun-ini', async (req, res) => {
   }
 });
 
-app.use('/api/genre/uncensored', checkApiReferer);
-app.get('/api/genre/uncensored', async (req, res) => {
+app.use('/api/genre/romance', checkApiReferer);
+app.get('/api/genre/romance', async (req, res) => {
   const cached = appCache.get('api_genre_uncensored');
   if (cached) return res.json(cached);
   try {
     const animes = await Anime.find({
-      'genres': /uncensored/i
+      'genres': /romance/i
     }).sort({
       createdAt: -1
     }).limit(6).select('pageSlug imageUrl title genres').lean();
