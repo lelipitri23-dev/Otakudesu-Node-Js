@@ -120,26 +120,40 @@ const safeString = (str) => {
     </section>
   <% } %>
 
-  <section class="bg-card rounded-lg shadow-md border border-[#33303f] overflow-hidden mb-6">
-    <div class="p-4 border-b border-[#33303f]">
-      <h3 class="text-sm font-bold text-primary uppercase tracking-wider">Sinopsis & Info</h3>
+  <section class="relative rounded-lg shadow-md border border-[#33303f] overflow-hidden mb-6">
+    
+    <div class="absolute inset-0 z-0">
+      <div class="absolute inset-0 bg-cover bg-center transition-transform duration-700 hover:scale-105" 
+           style="background-image: url('<%= pageImage %>'); filter: blur(4px);">
+      </div>
+      <div class="absolute inset-0 bg-black/80"></div>
     </div>
-    <div class="p-5">
-      <div class="flex flex-col md:flex-row gap-6">
-        
-        <div class="w-[140px] md:w-[200px] flex-shrink-0 mx-auto md:mx-0">
-          <img src="<%= pageImage %>" class="w-full rounded-md shadow-lg object-cover border border-[#33303f]" alt="<%= data.title %>">
-          <div class="text-center mt-4">
-            <button class="w-full bg-[#d9534f] hover:bg-red-700 text-white px-4 py-2 rounded text-xs font-bold shadow-md">
-              <i class="fas fa-exclamation-triangle"></i> Lapor Error
-            </button>
-          </div>
-        </div>
 
-        <div class="flex-1 min-w-0">
-          <p class="text-sm text-gray-300 leading-relaxed text-justify">
-            <%= (typeof parentAnime !== 'undefined' && parentAnime.synopsis) ? parentAnime.synopsis: 'Sinopsis belum tersedia untuk anime ini...' %>
-          </p>
+    <div class="relative z-10">
+      <div class="p-4 border-b border-white/10 bg-black/40 backdrop-blur-sm">
+        <h3 class="text-sm font-bold text-primary uppercase tracking-wider">Sinopsis & Info</h3>
+      </div>
+      
+      <div class="p-5">
+        <div class="flex flex-col md:flex-row gap-6">
+          
+          <div class="w-[140px] md:w-[200px] flex-shrink-0 mx-auto md:mx-0">
+            <img src="<%= pageImage %>" class="w-full rounded-md shadow-2xl object-cover border border-white/20" alt="<%= data.title %>">
+            <div class="text-center mt-4">
+              <button class="w-full bg-[#d9534f] hover:bg-red-700 text-white px-4 py-2 rounded text-xs font-bold shadow-md transition-colors border border-white/10">
+                <i class="fas fa-exclamation-triangle"></i> Lapor Error
+              </button>
+            </div>
+          </div>
+
+          <div class="flex-1 min-w-0">
+            <div class="bg-black/40 backdrop-blur-md p-5 rounded-lg border border-white/10 shadow-inner">
+              <p class="text-sm text-gray-200 leading-relaxed text-justify drop-shadow-sm">
+                <%= (typeof parentAnime !== 'undefined' && parentAnime.synopsis) ? parentAnime.synopsis: 'Sinopsis belum tersedia untuk anime ini...' %>
+              </p>
+            </div>
+          </div>
+
         </div>
       </div>
     </div>
