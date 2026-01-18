@@ -30,6 +30,7 @@ const {
   uploadToR2
 } = require('./utils/r2Upload');
 const apiV1Routes = require('./routes/api_v1');
+const { scrapeAndSaveCv, getAndCacheEpisodeDataCv } = require('./scraperUtilsCv');
 
 // --- Models ---
 const Anime = require('./models/Anime');
@@ -1332,6 +1333,59 @@ app.delete('/api/bookmarks/all', async (req, res) => {
 });
 
 app.use('/api/v1', apiV1Routes);
+
+app.get('/api/cron', async (req, res) => {
+  // 1. Keamanan Sederhana (Opsional: Cek Key)
+  // if (req.query.key !== 'RAHASIA123') return res.status(401).json({error: 'Unauthorized'});
+
+  console.log('--- [CRON] Starting Update Process ---');
+  
+  try {
+    // Cari Anime Ongoing
+    const ongoingAnime = await Anime.find({ 
+      "info.Status": { $regex: /ongoing/i } 
+    }, 'pageSlug episodes title').lean();
+
+    if (ongoingAnime.length === 0) {
+      return res.json({ success: true, message: 'No ongoing anime.' });
+    }
+
+    let updatesCount = 0;
+    const details = [];
+
+    // Proses Cek Update
+    for (const anime of ongoingAnime) {
+      try {
+        const updatedAnime = await scrapeAndSaveCv(anime.pageSlug);
+        
+        if (updatedAnime && updatedAnime.episodes) {
+          const localUrls = new Set(anime.episodes.map(e => e.url));
+          const newEpisodes = updatedAnime.episodes.filter(e => !localUrls.has(e.url));
+
+          if (newEpisodes.length > 0) {
+            for (const newEp of newEpisodes) {
+               await getAndCacheEpisodeDataCv(newEp.url);
+            }
+            updatesCount += newEpisodes.length;
+            details.push(`${anime.title}: +${newEpisodes.length}`);
+          }
+        }
+      } catch (err) {
+        console.error(`Error ${anime.title}:`, err.message);
+      }
+    }
+
+    res.json({
+      success: true,
+      message: `Selesai. ${updatesCount} episode baru.`,
+      details: details
+    });
+
+  } catch (error) {
+    console.error('[CRON ERROR]', error);
+    res.status(500).json({ error: error.message });
+  }
+});
 
 /**
 * =================================================================================
