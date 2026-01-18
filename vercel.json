@@ -7,26 +7,18 @@
       "config": {
         "includeFiles": ["public/**", "views/**"]
       }
-    },
+    }
+  ],
+  "routes": [
     {
-      "src": "api/cron.js",
-      "use": "@vercel/node"
+      "src": "/(.*)",
+      "dest": "/server.js"
     }
   ],
   "crons": [
     {
       "path": "/api/cron",
       "schedule": "0 * * * *"
-    }
-  ],
-  "routes": [
-    {
-      "src": "/api/cron",
-      "dest": "/api/cron"
-    },
-    {
-      "src": "/(.*)",
-      "dest": "/server.js"
     }
   ]
 }
