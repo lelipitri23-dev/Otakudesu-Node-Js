@@ -219,14 +219,13 @@ async function scrapeEpisodePageCv(episodeSlug) {
     const $ = cheerio.load(data);
 
     if (!$('.posttl').length) {
-      return { title: episodeSlug, streaming: [], downloads: [], thumbnailUrl: '/images/default_thumb.jpg', errorStatus: 404 };
+      return { title: episodeSlug, streaming: [], downloads: [], errorStatus: 404 };
     }
 
     const result = {
         title: $('.posttl').text().trim(),
         streaming: [],
-        downloads: [],
-        thumbnailUrl: '/images/default_thumb.jpg'
+        downloads: []
     };
 
     let nonceAction = null;
