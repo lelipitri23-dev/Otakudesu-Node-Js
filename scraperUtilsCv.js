@@ -16,12 +16,34 @@ const SITE_URL_FOR_INDEXING = process.env.SITE_URL || 'http://localhost:3000';
 const INDEXING_API_ENDPOINT = 'https://indexing.googleapis.com/v3/urlNotifications:publish';
 const INDEXING_SCOPES = ['https://www.googleapis.com/auth/indexing'];
 
+// [UPDATED] HEADERS UTAMA (Untuk Page Load/Navigasi Biasa)
+// Hapus 'X-Requested-With' di sini agar tidak terdeteksi sebagai bot saat buka halaman
 const SCRAPER_HEADERS = {
-  'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/118.0.0.0 Safari/537.36',
-  'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7',
-  'Referer': 'https://otakudesu.best/',
-  'X-Requested-With': 'XMLHttpRequest',
-  'Origin': 'https://otakudesu.best'
+  'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+  'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
+  'Accept-Language': 'en-US,en;q=0.9,id;q=0.8',
+  'Referer': `${BASE_URL}/`,
+  'Connection': 'keep-alive',
+  'Upgrade-Insecure-Requests': '1',
+  'Sec-Fetch-Dest': 'document',
+  'Sec-Fetch-Mode': 'navigate',
+  'Sec-Fetch-Site': 'same-origin',
+  'Sec-Fetch-User': '?1'
+};
+
+// [NEW] HEADERS KHUSUS AJAX (Untuk wp-admin/admin-ajax.php)
+const AJAX_HEADERS = {
+  'User-Agent': SCRAPER_HEADERS['User-Agent'],
+  'Accept': '*/*',
+  'Accept-Language': SCRAPER_HEADERS['Accept-Language'],
+  'Referer': `${BASE_URL}/`,
+  'Content-Type': 'application/x-www-form-urlencoded',
+  'X-Requested-With': 'XMLHttpRequest', // Wajib ada untuk AJAX WordPress
+  'Origin': BASE_URL,
+  'Connection': 'keep-alive',
+  'Sec-Fetch-Dest': 'empty',
+  'Sec-Fetch-Mode': 'cors',
+  'Sec-Fetch-Site': 'same-origin'
 };
 
 // ===================================
@@ -40,8 +62,9 @@ async function fetchNonce(nonceAction) {
     if (!nonceAction) return null;
     try {
         const postData = qs.stringify({ action: nonceAction });
+        // Gunakan AJAX_HEADERS
         const response = await axios.post(`${BASE_URL}/wp-admin/admin-ajax.php`, postData, {
-            headers: { ...SCRAPER_HEADERS, 'Content-Type': 'application/x-www-form-urlencoded' }
+            headers: AJAX_HEADERS
         });
         if (response.data && response.data.data) {
             return response.data.data;
@@ -67,8 +90,9 @@ async function resolveMirrorLink(base64Content, streamAction, nonce) {
 
         const postData = qs.stringify(body);
 
+        // Gunakan AJAX_HEADERS
         const response = await axios.post(`${BASE_URL}/wp-admin/admin-ajax.php`, postData, {
-            headers: { ...SCRAPER_HEADERS, 'Content-Type': 'application/x-www-form-urlencoded' }
+            headers: AJAX_HEADERS
         });
 
         if (response.data && response.data.data) {
@@ -102,7 +126,13 @@ async function downloadImage(externalUrl, baseFilename, subfolder = '') {
     if (!fs.existsSync(targetDir)) fs.mkdirSync(targetDir, { recursive: true });
     if (fs.existsSync(localDiskPath)) return webPath;
 
-    const response = await axios({ url: externalUrl, method: 'GET', responseType: 'stream', headers: SCRAPER_HEADERS });
+    // Gunakan headers minimal untuk gambar
+    const imgHeaders = {
+        'User-Agent': SCRAPER_HEADERS['User-Agent'],
+        'Referer': BASE_URL
+    };
+
+    const response = await axios({ url: externalUrl, method: 'GET', responseType: 'stream', headers: imgHeaders });
     const writer = fs.createWriteStream(localDiskPath);
     response.data.pipe(writer);
 
@@ -136,6 +166,7 @@ async function scrapeAndSaveCv(pageSlug) {
 
   try {
     console.log(`[SCRAPER ANIME] Processing: ${pageSlug}`);
+    // Gunakan SCRAPER_HEADERS (Page Load)
     const { data } = await axios.get(targetUrl, { headers: SCRAPER_HEADERS });
     const $ = cheerio.load(data);
 
@@ -215,6 +246,7 @@ async function scrapeEpisodePageCv(episodeSlug) {
   const targetUrl = `${BASE_SCRAPE_URL_EPISODE}${encodedSlug}/`;
 
   try {
+    // Gunakan SCRAPER_HEADERS (Page Load)
     const { data } = await axios.get(targetUrl, { headers: SCRAPER_HEADERS });
     const $ = cheerio.load(data);
 
