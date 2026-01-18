@@ -1334,9 +1334,15 @@ app.delete('/api/bookmarks/all', async (req, res) => {
 
 app.use('/api/v1', apiV1Routes);
 
+// Route Khusus Cron Job
 app.get('/api/cron', async (req, res) => {
-  // 1. Keamanan Sederhana (Opsional: Cek Key)
-  // if (req.query.key !== 'RAHASIA123') return res.status(401).json({error: 'Unauthorized'});
+  // [PERBAIKAN 1] Cara ambil header yang benar di Express
+  const authHeader = req.get('Authorization'); 
+  
+  // [PERBAIKAN 2] Cek apakah CRON_SECRET ada agar tidak undefined === undefined
+  if (!process.env.CRON_SECRET || authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
+    return res.status(401).json({ success: false, message: 'Unauthorized' });
+  }
 
   console.log('--- [CRON] Starting Update Process ---');
   
@@ -1344,7 +1350,9 @@ app.get('/api/cron', async (req, res) => {
     // Cari Anime Ongoing
     const ongoingAnime = await Anime.find({ 
       "info.Status": { $regex: /ongoing/i } 
-    }, 'pageSlug episodes title').lean();
+    }, 'pageSlug episodes title')
+    .limit(10) // [OPSIONAL] Batasi 10 anime per run agar tidak Time Out di Vercel Free (10 detik)
+    .lean();
 
     if (ongoingAnime.length === 0) {
       return res.json({ success: true, message: 'No ongoing anime.' });
