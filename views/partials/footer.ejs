@@ -33,6 +33,31 @@
       .replace(/\-\-+/g, '-');
   }
 
+  // [BARU] Fungsi cleanTitle versi Client-Side
+  function cleanTitle(title) {
+    if (!title) return '';
+    let cleaned = title;
+    
+    // Regex Patterns (Sama seperti di server.js)
+    const patterns = [
+        /\s*[\(\[\-\|:]?\s*(Subtitle Indonesia|Sub Indo|Sub lndo)\s*[\)\]]?\s*$/ig,
+        /\s*(Sub\s*Indo|Subtitle\s*Indonesia)\s*[:|-]\s*/ig,
+        /\s*[\(\[]?\s*Episode\s*[\d\s\–\-\.]+(\s*\(\s*End\s*\))?[\)\]]?/ig, // Menghapus (Episode 1 - 12)
+        /\s*BD\s*[\(\[]\s*Episode\s*[\d\s\–\-\.]*[\)\]]/ig,
+        /\s+BD\s*$/ig,
+        /\s+BD\s+/ig,
+        /\s*[\(\[]\s*Batch\s*[\)\]]/ig,
+        /\s*Batch\s*/ig
+    ];
+
+    patterns.forEach(regex => {
+        cleaned = cleaned.replace(regex, '');
+    });
+
+    // Pembersihan sisa karakter
+    return cleaned.replace(/\s*[:|-]\s*$/, '').replace(/\s+/g, ' ').trim();
+  }
+
   function timeAgo(date) {
     const seconds = Math.floor((new Date() - new Date(date)) / 1000);
     let interval = seconds / 31536000;
@@ -90,6 +115,9 @@
           animes.forEach(anime => {
             const genres = (anime.genres && anime.genres.length > 0) ? anime.genres.slice(0, 12).map(g => `<a href="/genre/${slugify(g)}" class="hover:text-primary">${g}</a>`).join(', ') : '&nbsp;';
             const safePageSlug = encodeURIComponent(anime.pageSlug || '');
+            
+            // [UPDATE] Menggunakan cleanTitle di sini
+            const displayTitle = cleanTitle(anime.title); 
 
             listHtml += `
               <li class="flex gap-3 border-b border-[#33303f] pb-3 last:border-0 group">
@@ -98,7 +126,7 @@
                 </a>
                 <div class="flex-1 min-w-0">
                   <h4 class="text-sm font-bold text-[var(--text-main)] leading-snug line-clamp-2 mb-1">
-                    <a href="/anime/${safePageSlug}" class="hover:text-primary transition-colors">${anime.title || ''}</a>
+                    <a href="/anime/${safePageSlug}" class="hover:text-primary transition-colors">${displayTitle}</a>
                   </h4>
                   <span class="text-[11px] text-muted block truncate">${genres}</span>
                 </div>
@@ -113,7 +141,6 @@
     }
 
     // 4. SIDEBAR: Load "Sedang Ditonton User Lain (Live)"
-    // Menggunakan ID 'genre-uncensored-items' sesuai layout sidebar.ejs
     const watchingNowContainer = document.getElementById('genre-uncensored-items');
     if (watchingNowContainer) {
       try {
@@ -125,13 +152,14 @@
         } else {
           let listHtml = `<ul class="space-y-3">`;
           episodes.forEach(ep => {
-            // Tentukan URL
             const rawSlug = ep.episodeSlug || '';
             const urlLink = rawSlug.startsWith('/') ? `/episode${rawSlug}` : `/episode/${rawSlug}`;
 
-            // Hitung waktu (Time Ago)
             const timeRef = ep.lastActive || ep.updatedAt;
             const timeString = timeRef ? timeAgo(timeRef) : 'Baru saja';
+            
+            // [UPDATE] Menggunakan cleanTitle untuk judul Anime di sini
+            const displayAnimeTitle = cleanTitle(ep.animeTitle);
 
             listHtml += `
               <li class="flex gap-3 border-b border-[#33303f] pb-3 last:border-0 group">
@@ -144,7 +172,7 @@
                 <div class="flex-1 min-w-0 flex flex-col justify-center">
                   <h4 class="text-sm font-bold text-[var(--text-main)] leading-snug line-clamp-2 mb-1">
                     <a href="${urlLink}" class="hover:text-primary transition-colors">
-                      ${ep.animeTitle || 'Unknown Anime'}
+                      ${displayAnimeTitle || 'Unknown Anime'}
                     </a>
                   </h4>
                   <div class="flex flex-col gap-0.5 text-[11px] text-muted">
@@ -259,7 +287,8 @@
 
                 const safeSlug = encodeURIComponent(anime.pageSlug || '');
                 const imageUrl = anime.imageUrl || '/images/default.jpg';
-                const title = anime.title || 'No Title';
+                // [UPDATE] cleanTitle bisa juga dipakai disini jika perlu
+                const title = cleanTitle(anime.title) || 'No Title';
                 const status = (anime.info && anime.info.Status) ? anime.info.Status : 'Ongoing';
 
                 card.innerHTML = `
