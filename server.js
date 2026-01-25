@@ -852,7 +852,8 @@ app.get('/home', async (req, res) => {
     const skip = (page - 1) * ITEMS_PER_PAGE;
 
     const [episodes, totalCount, latestSeries] = await Promise.all([
-      Episode.find().sort({ updatedAt: -1 }).skip(skip).limit(20).lean(),
+      Episode.find().sort({ _id: -1 }).skip(skip).limit(20).lean(),
+      
       Episode.countDocuments(),
       Anime.find().sort({ createdAt: -1 }).limit(12).select('pageSlug imageUrl title info.Type info.Released info.Status').lean()
     ]);
