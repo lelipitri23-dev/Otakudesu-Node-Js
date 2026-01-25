@@ -1038,7 +1038,7 @@ app.get('/anime/:slug', async (req, res) => {
     res.render('anime', {
       data: animeData, recommendations, latestSeries,
       page: 'anime', pageTitle: `${animeData.title} Subtitle Indonesia`,
-      pageDescription: `Nonton ${animeData.title} Sub Indo.`,
+      pageDescription: `Download, Nonton, & Streaming Anime ${animeData.title} Sub Indo resolusi 360p, 480p, 720p lengkap beserta Batch format Mp4 dan Mkv.`,
       pageImage: animeData.imageUrl, pageUrl: SITE_URL + req.originalUrl
     });
   } catch (error) {
@@ -1132,7 +1132,7 @@ app.get('/episode/:slug', async (req, res) => {
       data: episodeData, nav, recommendations, latestSeries, parentAnime,
       page: 'nonton', 
       pageTitle: `${episodeData.title}`,
-      pageDescription: `Nonton ${episodeData.title} Sub Indo.`,
+      pageDescription: `Download, Nonton, & Streaming ${episodeData.title} resolusi 360p, 480p, 720p lengkap beserta Batch format Mp4 dan Mkv.`,
       pageImage: parentAnime?.imageUrl || '/images/default.jpg', 
       pageUrl: SITE_URL + req.originalUrl
     });
