@@ -894,7 +894,7 @@ app.get('/trending', async (req, res) => {
 });
 
 app.get('/jadwal', (req, res) => res.render('jadwal', {
-  page: 'jadwal', pageTitle: `Jadwal - ${SITE_NAME}`, pageDescription: '', pageImage: `${SITE_URL}/images/default.jpg`, pageUrl: SITE_URL + req.originalUrl
+  page: 'jadwal', pageTitle: `Jadwal Rilis- ${SITE_NAME}`, pageDescription: 'Jadwal anime sub indo yang akan datang di Hunter No Sekai', pageImage: `${SITE_URL}/images/default.jpg`, pageUrl: SITE_URL + req.originalUrl
 }));
 
 app.get('/search', async (req, res) => {
