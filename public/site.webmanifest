@@ -1,6 +1,7 @@
 {
-    "name": "Otakudesu",
-    "short_name": "Otakudesu",
+    "name": "Hunter No Sekai",
+    "short_name": "Hunter No Sekai",
+    "description": "Tempat Download dan Nonton Anime Subtitle Indonesia.",
     "icons": [
         {
             "src": "/android-chrome-192x192.png",
@@ -14,7 +15,7 @@
         }
     ],
     "theme_color": "#ffffff",
-    "start_url": "/",
+    "start_url": "/home",
     "background_color": "#ffffff",
     "display": "standalone"
 }
