@@ -73,39 +73,18 @@ app.locals.cleanTitle = (title) => {
   let cleaned = title;
 
   const patterns = [
-    // 1. Hapus "Subtitle Indonesia" atau "Sub Indo" di AKHIR kalimat
-    // Menangani variasi: " - Sub Indo", " : Subtitle Indonesia", "(Sub Indo)"
     /\s*[\(\[\-\|:]?\s*(Subtitle Indonesia|Sub Indo|Sub lndo)\s*[\)\]]?\s*$/ig,
-
-    // 2. Hapus "Sub Indo :" atau "Subtitle Indonesia :" di AWAL atau TENGAH kalimat
-    // Contoh: "Sub Indo : Episode..."
     /\s*(Sub\s*Indo|Subtitle\s*Indonesia)\s*[:|-]\s*/ig,
-
-    // 3. Hapus Pola Episode Range dengan status (End)
-    // Contoh: "Episode 1 – 13 (End)", "(Episode 1-12)", "[Episode 1 - 24]"
-    // Regex ini menangkap kata "Episode", diikuti angka/strip, dan opsional "(End)"
     /\s*[\(\[]?\s*Episode\s*[\d\s\–\-\.]+(\s*\(\s*End\s*\))?[\)\]]?/ig,
-
-    // 4. Hapus Pola BD (Blu-ray)
-    // Contoh: "BD (Episode 1-12)", "BD Batch"
-    /\s*BD\s*[\(\[]\s*Episode\s*[\d\s\–\-\.]*[\)\]]/ig, // BD dengan episode
-    /\s+BD\s*$/ig, // BD sendiri di akhir
-    /\s+BD\s+/ig,  // BD sendiri di tengah
-
-    // 5. Hapus Batch
+    /\s+BD\s*$/ig,
+    /\s+BD\s+/ig,
     /\s*[\(\[]\s*Batch\s*[\)\]]/ig,
     /\s*Batch\s*/ig
   ];
-
   patterns.forEach(regex => {
     cleaned = cleaned.replace(regex, '');
   });
-
-  // Pembersihan Akhir:
-  // Hapus tanda baca sisa di ujung string (misal: "Naruto :")
   cleaned = cleaned.replace(/\s*[:|-]\s*$/, '');
-  
-  // Hapus spasi ganda menjadi satu spasi
   return cleaned.replace(/\s+/g, ' ').trim();
 };
 const storage = multer.memoryStorage();
@@ -1066,25 +1045,43 @@ app.get('/anime/:slug', async (req, res) => {
   }
 });
 
-// Nonton / Watch Page (ROUTE BARU & DIPERBAIKI)
-// Menggunakan prefix /episode/ untuk menangkap slug episode secara langsung
 app.get('/episode/:slug', async (req, res) => {
   try {
-    const episodeSlug = req.params.slug; // Slug episode (misal: ssnir-episode-12-sub-indo)
+    // Gunakan decodeURIComponent agar slug dengan karakter spesial terbaca
+    const episodeSlug = decodeURIComponent(req.params.slug); 
     
+    // 1. Ambil Data (Episode, Parent Anime, Rekomendasi, Latest)
     const [episodeData, parentAnime, recommendations, latestSeries] = await Promise.all([
-      Episode.findOne({ episodeSlug }).lean(),
-      Anime.findOne({ "episodes.url": episodeSlug }).lean(), // Cari parent anime berdasarkan relasi episode url
+      // Coba cari slug apa adanya, ATAU dengan slash di depan (jika format DB beda)
+      Episode.findOne({ 
+        $or: [{ episodeSlug: episodeSlug }, { episodeSlug: `/${episodeSlug}` }] 
+      }).lean(),
+      Anime.findOne({ "episodes.url": episodeSlug }).lean(),
       Anime.aggregate([{ $sample: { size: 8 } }]),
       Anime.find({}).sort({ createdAt: -1 }).limit(12).select('pageSlug imageUrl title info.Type info.Released info.Status').lean()
     ]);
 
-    // Jika tidak ketemu di DB, tampilkan 404
-    if (!episodeData) return res.status(404).render('404', { page: '404', pageTitle: 'Not Found', pageDescription: '', pageImage: '', pageUrl: '', query: '' });
-
-    if (parentAnime) Anime.updateOne({ _id: parentAnime._id }, { $inc: { viewCount: 1 } }, { timestamps: false }).exec().catch(() => {});
-
-    // Encode Base64 untuk frontend (keamanan link)
+    // 2. Jika Episode tidak ditemukan, 404
+    if (!episodeData) {
+      return res.status(404).render('404', { 
+        page: '404', pageTitle: 'Not Found', 
+        pageDescription: '', pageImage: '', pageUrl: '', query: '' 
+      });
+    }
+    Episode.updateOne(
+      { _id: episodeData._id }, 
+      { 
+        $set: { lastActive: new Date() },
+        $inc: { viewCount: 1 }
+      }
+    ).exec();
+    if (parentAnime) {
+      Anime.updateOne(
+        { _id: parentAnime._id }, 
+        { $inc: { viewCount: 1 } }, 
+        { timestamps: false }
+      ).exec().catch(() => {});
+    }
     if (episodeData.streaming) {
       episodeData.streaming = episodeData.streaming.map(s => ({
         ...s,
@@ -1100,29 +1097,51 @@ app.get('/episode/:slug', async (req, res) => {
         }))
       }));
     }
-
-    // Navigasi Prev/Next
     const nav = { prev: null, next: null, all: null };
     if (parentAnime) {
       nav.all = `/anime/${parentAnime.pageSlug}`;
-      const idx = parentAnime.episodes.findIndex(ep => ep.url === episodeSlug);
+      const cleanSlug = episodeSlug.replace(/^\//, ''); 
+      
+      const idx = parentAnime.episodes.findIndex(ep => {
+        return ep.url === cleanSlug || ep.url === `/${cleanSlug}` || ep.url === episodeSlug;
+      });
       
       if (idx !== -1) {
-        if (idx > 0) nav.prev = { ...parentAnime.episodes[idx - 1], url: `/episode/${parentAnime.episodes[idx - 1].url}` };
-        if (idx < parentAnime.episodes.length - 1) nav.next = { ...parentAnime.episodes[idx + 1], url: `/episode/${parentAnime.episodes[idx + 1].url}` };
+        if (idx > 0) {
+          let prevUrl = parentAnime.episodes[idx - 1].url;
+          if (!prevUrl.startsWith('/')) prevUrl = '/' + prevUrl; // Normalisasi link
+          nav.prev = { 
+            ...parentAnime.episodes[idx - 1], 
+            url: `/episode${prevUrl}`.replace('//', '/') // Cegah double slash
+          };
+        }
+        if (idx < parentAnime.episodes.length - 1) {
+          let nextUrl = parentAnime.episodes[idx + 1].url;
+          if (!nextUrl.startsWith('/')) nextUrl = '/' + nextUrl;
+          nav.next = { 
+            ...parentAnime.episodes[idx + 1], 
+            url: `/episode${nextUrl}`.replace('//', '/')
+          };
+        }
       }
     }
 
+    // 6. Render View
     res.render('nonton', {
       data: episodeData, nav, recommendations, latestSeries, parentAnime,
-      page: 'nonton', pageTitle: `${episodeData.title}`,
+      page: 'nonton', 
+      pageTitle: `${episodeData.title}`,
       pageDescription: `Nonton ${episodeData.title} Sub Indo.`,
-      pageImage: parentAnime?.imageUrl || '/images/default.jpg', pageUrl: SITE_URL + req.originalUrl
+      pageImage: parentAnime?.imageUrl || '/images/default.jpg', 
+      pageUrl: SITE_URL + req.originalUrl
     });
+
   } catch (error) {
-    res.status(500).send(error.message);
+    console.error("Error di route episode:", error);
+    res.status(500).send("Terjadi kesalahan pada server.");
   }
 });
+
 
 app.get('/player', (req, res) => res.render('player', {
   layout: false
@@ -1213,24 +1232,34 @@ app.get('/api/tahun-ini', async (req, res) => {
   }
 });
 
-app.use('/api/genre/romance', checkApiReferer);
-app.get('/api/genre/romance', async (req, res) => {
-  const cached = appCache.get('api_genre_uncensored');
-  if (cached) return res.json(cached);
+app.use('/api/now-watching', checkApiReferer);
+app.get('/api/now-watching', async (req, res) => {
   try {
-    const animes = await Anime.find({
-      'genres': /romance/i
-    }).sort({
-      createdAt: -1
-    }).limit(6).select('pageSlug imageUrl title genres').lean();
-    appCache.set('api_genre_uncensored', animes);
-    res.json(animes);
+    // Ambil 6 episode yang memiliki field 'lastActive', diurutkan dari yang paling baru
+    let episodes = await Episode.find({ lastActive: { $exists: true } })
+      .sort({ lastActive: -1 })
+      .limit(6)
+      .select('title episodeSlug animeImageUrl animeTitle lastActive')
+      .lean();
+
+    // FALLBACK: Jika fitur ini baru dipasang (belum ada yang nonton), 
+    // ambil data berdasarkan 'updatedAt' (Episode baru upload) agar list tidak kosong.
+    if (episodes.length < 1) {
+       episodes = await Episode.find()
+        .sort({ updatedAt: -1 })
+        .limit(6)
+        .select('title episodeSlug animeImageUrl animeTitle updatedAt as lastActive') // Alias agar kompatibel
+        .lean();
+    }
+
+    // Set cache sangat singkat (misal 5 detik) agar terasa real-time
+    res.setHeader('Cache-Control', 'public, max-age=5'); 
+    res.json(episodes);
   } catch (e) {
-    res.status(500).json({
-      error: 'Error'
-    });
+    res.status(500).json({ error: 'Error' });
   }
 });
+
 
 // Bookmark APIs
 app.get('/api/bookmark-status', async (req, res) => {
