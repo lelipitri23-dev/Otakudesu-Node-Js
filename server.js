@@ -879,8 +879,8 @@ app.get('/home', async (req, res) => {
     ]);
 
     res.render('home', {
-      page: 'home', pageTitle: `${SITE_NAME} - Nonton Anime Sub Indo`,
-      pageDescription: 'Nonton anime subtitle indonesia gratis kualitas HD.',
+      page: 'home', pageTitle: `${SITE_NAME}`,
+      pageDescription: 'Tempat Download dan Nonton Anime Subtitle Indonesia, dengan Format Mp4 dan MKV dan dalam Ukuran 480p, 720p, 360p hanya Di Hunter No Sekai.',
       pageImage: `${SITE_URL}/images/default.jpg`, pageUrl: SITE_URL + req.originalUrl,
       
       // PERBAIKAN LINK: Menggunakan prefix '/episode/' agar tidak ambigu
@@ -905,8 +905,8 @@ app.get('/trending', async (req, res) => {
       viewCount: -1
     }).limit(20).lean();
     res.render('trending', {
-      animes: encodeAnimeSlugs(animes), page: 'trending', pageTitle: `Trending - ${SITE_NAME}`,
-      pageDescription: 'Populer', pageImage: `${SITE_URL}/images/default.jpg`, pageUrl: `${SITE_URL}/trending`, totalCount: animes.length
+      animes: encodeAnimeSlugs(animes), page: 'trending', pageTitle: `Anime Trending - ${SITE_NAME}`,
+      pageDescription: 'Kumpulan anime yang banyak di tonton dengan subtitle Indonesia', pageImage: `${SITE_URL}/images/default.jpg`, pageUrl: `${SITE_URL}/trending`, totalCount: animes.length
     });
   } catch (e) {
     res.status(500).send('Error.');
