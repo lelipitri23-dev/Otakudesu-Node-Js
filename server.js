@@ -848,34 +848,40 @@ app.get('/', (req, res) => res.render('landing', {
 
 app.get('/home', async (req, res) => {
   try {
-    const page = parseInt(req.query.page) || 1;
-    const skip = (page - 1) * ITEMS_PER_PAGE;
-
+    const page = Math.max(1, parseInt(req.query.page) || 1);
+    const LIMIT = 20; 
+    const skip = (page - 1) * LIMIT;
     const [episodes, totalCount, latestSeries] = await Promise.all([
-      Episode.find().sort({ _id: -1 }).skip(skip).limit(20).lean(),
-      
+      Episode.find().sort({ _id: -1 }).skip(skip).limit(LIMIT).lean(),
       Episode.countDocuments(),
       Anime.find().sort({ createdAt: -1 }).limit(12).select('pageSlug imageUrl title info.Type info.Released info.Status').lean()
     ]);
-
+    let dynamicTitle = SITE_NAME;
+    if (page > 1) {
+        dynamicTitle = `${SITE_NAME} - Halaman ${page}`;
+    }
     res.render('home', {
-      page: 'home', pageTitle: `${SITE_NAME}`,
-      pageDescription: 'Tempat Download dan Nonton Anime Subtitle Indonesia, dengan Format Mp4 dan MKV dan dalam Ukuran 480p, 720p, 360p hanya Di Hunter No Sekai.',
-      pageImage: `${SITE_URL}/images/default.jpg`, pageUrl: SITE_URL + req.originalUrl,
-      
-      // PERBAIKAN LINK: Menggunakan prefix '/episode/' agar tidak ambigu
+      page: 'home',
+      pageTitle: dynamicTitle, 
+      pageDescription: 'Tempat Download dan Nonton Anime Subtitle Indonesia, dengan Format Mp4 dan MKV.',
+      pageImage: `${SITE_URL}/images/default.jpg`,
+      pageUrl: `${SITE_URL}${req.originalUrl}`,
       episodes: episodes.map(ep => ({
-        watchUrl: `/episode/${ep.episodeSlug}`,  // <-- Fix disini
-        title: ep.title, 
-        imageUrl: ep.animeImageUrl || ep.animeImageUrl || '/images/default.jpg',
+        watchUrl: `/episode/${ep.episodeSlug}`,
+        title: ep.title,
+        imageUrl: ep.imageUrl || ep.animeImageUrl || '/images/default.jpg',
         quality: 'HD',
-        year: new Date(ep.updatedAt || ep.createdAt).getFullYear().toString(), 
+        year: ep.updatedAt ? new Date(ep.updatedAt).getFullYear() : new Date().getFullYear(),
         createdAt: ep.updatedAt || ep.createdAt
       })),
-      latestSeries, currentPage: page, totalPages: Math.ceil(totalCount / ITEMS_PER_PAGE), baseUrl: '/home'
+      latestSeries,
+      currentPage: page,
+      totalPages: Math.ceil(totalCount / LIMIT),
+      baseUrl: '/home'
     });
   } catch (error) {
-    res.status(500).send(error.message);
+    console.error(error);
+    res.status(500).send("Server Error");
   }
 });
 
