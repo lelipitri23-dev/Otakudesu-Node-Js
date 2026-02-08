@@ -1432,7 +1432,7 @@ app.get('/sitemap-episode.xml', async (req, res) => {
   res.write('<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">');
   const cursor = Episode.find({}, 'episodeSlug updatedAt').lean().cursor();
   for (let doc = await cursor.next(); doc != null; doc = await cursor.next()) {
-    if (doc.episodeSlug) res.write(`<url><loc>${SITE_URL}/anime${doc.episodeSlug}</loc><lastmod>${doc.updatedAt ? new Date(doc.updatedAt).toISOString().split('T')[0]: new Date().toISOString().split('T')[0]}</lastmod><changefreq>weekly</changefreq><priority>0.8</priority></url>`);
+    if (doc.episodeSlug) res.write(`<url><loc>${SITE_URL}/episode/{doc.episodeSlug}</loc><lastmod>${doc.updatedAt ? new Date(doc.updatedAt).toISOString().split('T')[0]: new Date().toISOString().split('T')[0]}</lastmod><changefreq>weekly</changefreq><priority>0.8</priority></url>`);
   }
   res.end('</urlset>');
 });
