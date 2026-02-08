@@ -10,7 +10,7 @@
         body { background-color: #000; color: #ccc; }
     </style>
 </head>
-<body class="flex flex-col items-center justify-center min-h-screen p-4 bg-cover bg-center bg-no-repeat bg-fixed" id="bg-body">
+<body class="flex flex-col items-center justify-center min-h-screen p-4">
     
     <div class="w-full max-w-3xl bg-black/80 backdrop-blur-sm rounded-xl border border-white/10 p-8 text-center shadow-2xl">
         
@@ -37,15 +37,8 @@
     </div>
 
     <script>
-        // Script Background Random
-        const backgrounds = [
-          '/images/backgrounds/bg1.webp', /* Tambahkan URL gambar lain */
-        ];
-        const randomImage = backgrounds[Math.floor(Math.random() * backgrounds.length)];
-        if(randomImage) document.getElementById('bg-body').style.backgroundImage = `url(${randomImage})`;
-
         // Countdown Logic
-        var timeleft = 10;
+        var timeleft = 7;
         var encodedUrl = "<%= base64Url %>";
         var downloadTimer = setInterval(function () {
             if (timeleft <= 0) {
