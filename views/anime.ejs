@@ -1,0 +1,187 @@
+<%- include('partials/header', {
+  /* data header */
+}) %>
+
+<main class="flex-1 w-full min-w-0">
+
+  <article class="bg-card rounded-lg shadow-md border border-[#33303f] overflow-hidden mb-6">
+    <header class="p-5 border-b border-[#33303f]">
+      <h1 class="text-xl md:text-2xl font-bold text-[var(--text-main)] mb-1"><%= cleanTitle(data.title) %> Subtitle Indonesia</h1>
+      <div class="text-xs text-muted">
+        <span>Admin</span> • <span><%= new Date(data.updatedAt || Date.now()).toLocaleString('id-ID') %></span>
+      </div>
+    </header>
+
+    <div class="p-5">
+      <div class="flex flex-col md:flex-row gap-6">
+        <div class="w-full md:w-[240px] flex-shrink-0">
+          <img src="<%= data.imageUrl || '/images/default.jpg' %>" class="w-full rounded-md shadow-lg border border-[#33303f]" alt="<%= cleanTitle(data.title) %>">
+          <div class="mt-4 text-center">
+            <button id="favorit1" data-animeid="<%= data._id %>" class="w-full bg-[#4a4a4a] hover:bg-[#666] text-white py-2 rounded-full font-bold text-sm transition-all shadow-md">
+              Bookmark
+            </button>
+          </div>
+        </div>
+
+        <div class="flex-1">
+          <div class="mb-8 border-b border-[#33303f] pb-6">
+            <h3 class="text-lg font-bold text-[var(--text-main)] mb-4 border-l-4 border-primary pl-3">Daftar Episode</h3>
+            <% if (data.episodes && data.episodes.length > 0) {
+              %>
+              <div class="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-4 lg:grid-cols-6 gap-2 max-h-[300px] overflow-y-auto pr-1 custom-scrollbar">
+                <% data.episodes.forEach((ep) => {
+                  let displayTitle = ep.title;
+                  const match = ep.title.match(/Episode\s+(\d+)/i);
+                  if (match) displayTitle = 'Episode ' + parseInt(match[1]);
+                  %>
+                  <a href="<%= ep.url %>" class="block bg-darker hover:bg-primary hover:text-white border border-[#33303f] hover:border-primary text-[var(--text-main)] text-center py-2 px-1 text-xs font-medium rounded transition-colors truncate" title="<%= ep.title %>">
+                    <%= displayTitle %>
+                  </a>
+                  <%
+                }) %>
+              </div>
+              <%
+            } else {
+              %>
+              <p class="text-muted text-sm">
+                Belum ada episode.
+              </p>
+              <%
+            } %>
+          </div>
+
+          <h3 class="text-sm font-bold text-[var(--text-main)] mb-2 uppercase text-muted">Sinopsis</h3>
+          <p class="text-sm text-muted leading-relaxed mb-6 text-justify">
+            <%= data.synopsis %>
+          </p>
+
+          <div class="bg-darker/50 p-4 rounded-lg border border-[#33303f] mb-6">
+            <h3 class="text-sm font-bold text-primary mb-2">Review Singkat <%= cleanTitle(data.title) %></h3>
+            <p class="text-xs text-gray-400 leading-relaxed text-justify">
+              Anime <strong><%= cleanTitle(data.title) %></strong> merupakan salah satu judul yang paling dinantikan di musim ini.
+              Dengan genre <em><%= data.genres.slice(0, 3).join(', ') %></em>, anime ini menawarkan cerita yang mendalam dan visual yang memukau.
+              Bagi penggemar anime dengan tema serupa, <%= cleanTitle(data.title) %> adalah tontonan wajib yang tidak boleh dilewatkan.
+              Tonton streaming atau download episode terbaru dengan kualitas HD subtitle Indonesia hanya di <%= siteName %>.
+            </p>
+          </div>
+
+          <div class="bg-darker rounded-lg border border-[#33303f] p-4">
+            <table class="w-full text-sm text-left">
+              <tbody class="divide-y divide-[#33303f]">
+                <% if (data.alternativeTitle) {
+                  %>
+                  <tr><th class="py-2 text-muted w-24">Alternatif</th><td class="py-2 text-[var(--text-main)]"><%= data.alternativeTitle %></td></tr>
+                  <%
+                } %>
+                <tr>
+                  <th class="py-2 text-muted">Tipe</th>
+                  <td class="py-2 font-bold"><a href="/type/<%= slugify(data.info.Type) %>" class="text-primary hover:text-[var(--text-main)]"><%= data.info.Type %></a></td>
+                </tr>
+                <tr>
+                  <th class="py-2 text-muted">Genre</th>
+                  <td class="py-2 text-[var(--text-main)]">
+                    <% data.genres.forEach((g, i) => {
+                      %>
+                      <a href="/genre/<%= slugify(g) %>" class="hover:text-primary"><%= g %></a><%= i < data.genres.length - 1 ? ', ': '' %>
+                      <%
+                    }) %>
+                  </td>
+                </tr>
+                <tr>
+  <th class="py-2 text-muted">Status</th>
+  <td class="py-2">
+    <a href="/status/<%= typeof slugify === 'function' ? slugify(data.info.Status) : data.info.Status.toLowerCase().replace(/ /g, '-') %>" 
+       class="bg-primary hover:bg-[#d15f76] text-white px-2 py-0.5 rounded text-xs transition-colors font-bold inline-block">
+      <%= data.info.Status %>
+    </a>
+  </td>
+</tr>
+                <tr>
+                  <th class="py-2 text-muted">Studio</th>
+                  <td class="py-2 text-[var(--text-main)]"><%= data.info.Studio %></td>
+                </tr>
+                <tr>
+                  <th class="py-2 text-muted">Producers</th>
+                  <td class="py-2 text-[var(--text-main)]"><%= data.info.Producers %></td>
+                </tr>
+                <tr>
+                  <th class="py-2 text-muted">Score</th>
+                  <td class="py-2 text-[var(--text-main)]"><%= data.info.Score %></td>
+                </tr>
+                <tr>
+                  <th class="py-2 text-muted">Released</th>
+                  <td class="py-2 text-[var(--text-main)]"><%= data.info.Released %></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </article>
+
+  <% if (typeof recommendations !== 'undefined' && recommendations.length > 0) {
+    %>
+    <section class="bg-card rounded-lg shadow-md border border-[#33303f] overflow-hidden mb-6">
+      <div class="p-5 border-b border-[#33303f]">
+        <h3 class="text-base font-bold text-[var(--text-main)] border-l-4 border-primary pl-3">Rekomendasi Sejenis</h3>
+      </div>
+      <div class="p-5">
+        <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+          <% recommendations.forEach(rec => {
+            %>
+            <article class="group relative bg-darker rounded-md overflow-hidden border border-[#33303f] hover:border-primary transition-all duration-300">
+              <a href="/anime/<%= encodeURIComponent(rec.pageSlug) %>" title="<%= cleanTitle(rec.title) %>">
+                <div class="relative aspect-[2/3] overflow-hidden">
+                  <img src="<%= rec.imageUrl || '/images/default.jpg' %>"
+                  class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110 lazy-load"
+                  loading="lazy"
+                  alt="<%= cleanTitle(rec.title) %>">
+                  <span class="absolute bottom-0 right-0 bg-primary text-white text-[9px] font-bold px-2 py-0.5 rounded-tl">
+                    <%= rec.info.Type || 'TV' %>
+                  </span>
+                </div>
+                <div class="p-2">
+                  <h4 class="text-xs font-semibold text-gray-300 line-clamp-2 group-hover:text-primary transition-colors">
+                    <%= cleanTitle(rec.title) %>
+                  </h4>
+                </div>
+              </a>
+            </article>
+            <%
+          }) %>
+        </div>
+      </div>
+    </section>
+    <%
+  } %>
+
+  <section class="bg-card rounded-lg shadow-md border border-[#33303f] overflow-hidden mb-6">
+    <div class="p-5 border-b border-[#33303f]">
+      <h3 class="text-base font-bold text-[var(--text-main)]">Komentar</h3>
+    </div>
+    <div class="p-5">
+      <div id="disqus_thread"></div>
+      <script>
+        var disqus_config = function () {
+          this.page.url = '<%= pageUrl %>';
+          this.page.identifier = '<%= data._id %>';
+        };
+        (function() {
+          var d = document, s = document.createElement('script');
+          s.src = 'https://hentaisubindo.disqus.com/embed.js'; // Pastikan shortname disqus benar
+          s.setAttribute('data-timestamp', +new Date());
+          (d.head || d.body).appendChild(s);
+        })();
+      </script>
+    </div>
+  </section>
+
+</main>
+
+<%- include('partials/sidebar', {
+  page: page
+}) %>
+<%- include('partials/footer', {
+  page: page
+}) %>

@@ -1,0 +1,395 @@
+</div>
+</div>
+<footer class="mt-12 bg-card border-t-4 border-primary pt-8 pb-6">
+  <div class="max-w-[1200px] mx-auto px-4 text-center">
+
+    <ul class="flex flex-wrap justify-center gap-4 md:gap-8 mb-6 text-sm font-bold text-muted uppercase">
+      <li><a href="/tahun-list" class="hover:text-primary transition-colors">Tahun</a></li>
+      <li><a href="/genre-list" class="hover:text-primary transition-colors">Genre</a></li>
+      <li><a href="/jadwal" class="hover:text-primary transition-colors">Jadwal</a></li>
+      <li><a href="/trending" class="hover:text-primary transition-colors">Trending</a></li>
+    </ul>
+
+    <div class="text-xs text-muted space-y-2">
+      <p>
+        Copyright &copy; <%= new Date().getFullYear() %> - <span class="text-[var(--text-main)] font-bold"><%= (typeof siteName !== 'undefined') ? siteName: 'NontonHentai' %></span>
+      </p>
+      <p class="max-w-2xl mx-auto leading-relaxed">
+        Disclaimer: This site <i><%= (typeof siteName !== 'undefined') ? siteName: '' %></i> does not store any files on its server. All contents are provided by non-affiliated third parties.
+      </p>
+    </div>
+  </div>
+</footer>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.7.1/jquery.min.js" integrity="sha512-v2CJ7UaYy4JwqLDIrZUI/4hqeoQieOmAZNXBeQyjo21dadnwR+8ZaIJVT8EE2iyI61OV8e6M8PP2/4hpQINQ/g==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+
+<script>
+  // --- Helper Functions ---
+  function slugify(text) {
+    if (!text) return '';
+    return text.toString().toLowerCase().trim()
+      .replace(/\s+/g, '-')
+      .replace(/[^\w\-]+/g, '')
+      .replace(/\-\-+/g, '-');
+  }
+
+  // [BARU] Fungsi cleanTitle versi Client-Side
+  function cleanTitle(title) {
+    if (!title) return '';
+    let cleaned = title;
+    
+    // Regex Patterns (Sama seperti di server.js)
+    const patterns = [
+        /\s*[\(\[\-\|:]?\s*(Subtitle Indonesia|Sub Indo|Sub lndo)\s*[\)\]]?\s*$/ig,
+        /\s*(Sub\s*Indo|Subtitle\s*Indonesia)\s*[:|-]\s*/ig,
+        /\s*[\(\[]?\s*Episode\s*[\d\s\–\-\.]+(\s*\(\s*End\s*\))?[\)\]]?/ig, // Menghapus (Episode 1 - 12)
+        /\s*BD\s*[\(\[]\s*Episode\s*[\d\s\–\-\.]*[\)\]]/ig,
+        /\s+BD\s*$/ig,
+        /\s+BD\s+/ig,
+        /\s*[\(\[]\s*Batch\s*[\)\]]/ig,
+        /\s*Batch\s*/ig
+    ];
+
+    patterns.forEach(regex => {
+        cleaned = cleaned.replace(regex, '');
+    });
+
+    // Pembersihan sisa karakter
+    return cleaned.replace(/\s*[:|-]\s*$/, '').replace(/\s+/g, ' ').trim();
+  }
+
+  function timeAgo(date) {
+    const seconds = Math.floor((new Date() - new Date(date)) / 1000);
+    let interval = seconds / 31536000;
+    if (interval > 1) return Math.floor(interval) + " tahun lalu";
+    interval = seconds / 2592000;
+    if (interval > 1) return Math.floor(interval) + " bulan lalu";
+    interval = seconds / 86400;
+    if (interval > 1) return Math.floor(interval) + " hari lalu";
+    interval = seconds / 3600;
+    if (interval > 1) return Math.floor(interval) + " jam lalu";
+    interval = seconds / 60;
+    if (interval > 1) return Math.floor(interval) + " menit lalu";
+    return Math.floor(seconds) + " detik lalu";
+  }
+
+  // --- Main Logic ---
+  document.addEventListener('DOMContentLoaded', async () => {
+    // Data dari Server (EJS variables)
+    const page = <%- JSON.stringify(typeof page !== 'undefined' ? page: '') %>;
+    const userId = <%- JSON.stringify(typeof user !== 'undefined' && user ? user.id: null) %>;
+
+    // 1. Lazy Load Images (Fade-in Effect)
+    const lazyImages = document.querySelectorAll('img.lazy-load[data-src]');
+    const lazyImageObserver = new IntersectionObserver((entries, observer) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          const img = entry.target;
+          observer.unobserve(img);
+          img.src = img.getAttribute("data-src");
+          img.onload = () => {
+            img.classList.remove("opacity-0");
+            img.classList.add("opacity-100");
+          };
+        }
+      });
+    });
+    lazyImages.forEach(img => lazyImageObserver.observe(img));
+
+    // 2. Time Ago Elements
+    document.querySelectorAll('.time-ago').forEach(el => {
+      const timestamp = el.getAttribute('data-t');
+      if (timestamp) el.textContent = timeAgo(timestamp);
+    });
+
+    // 3. SIDEBAR: Load "Tahun Ini" (AJAX)
+    const tahunIniContainer = document.getElementById('tahun-ini-items');
+    if (tahunIniContainer) {
+      try {
+        const response = await fetch(`/api/tahun-ini`);
+        const animes = await response.json();
+        if (!animes || animes.length === 0) {
+          tahunIniContainer.innerHTML = `<p class="text-center text-xs text-muted p-4">Tidak ada data.</p>`;
+        } else {
+          let listHtml = `<ul class="space-y-3">`;
+          animes.forEach(anime => {
+            const genres = (anime.genres && anime.genres.length > 0) ? anime.genres.slice(0, 12).map(g => `<a href="/genre/${slugify(g)}" class="hover:text-primary">${g}</a>`).join(', ') : '&nbsp;';
+            const safePageSlug = encodeURIComponent(anime.pageSlug || '');
+            
+            // [UPDATE] Menggunakan cleanTitle di sini
+            const displayTitle = cleanTitle(anime.title); 
+
+            listHtml += `
+              <li class="flex gap-3 border-b border-[#33303f] pb-3 last:border-0 group">
+                <a href="/anime/${safePageSlug}" class="shrink-0 w-[60px]">
+                  <img src="${anime.imageUrl || '/images/default.jpg'}" class="w-full h-[85px] object-cover rounded border border-[#33303f] group-hover:border-primary transition-colors" loading="lazy">
+                </a>
+                <div class="flex-1 min-w-0">
+                  <h4 class="text-sm font-bold text-[var(--text-main)] leading-snug line-clamp-2 mb-1">
+                    <a href="/anime/${safePageSlug}" class="hover:text-primary transition-colors">${displayTitle}</a>
+                  </h4>
+                  <span class="text-[11px] text-muted block truncate">${genres}</span>
+                </div>
+              </li>`;
+          });
+          listHtml += '</ul>';
+          tahunIniContainer.innerHTML = listHtml;
+        }
+      } catch (error) {
+        tahunIniContainer.innerHTML = `<p class="text-center text-xs text-red-500 p-4">Gagal memuat.</p>`;
+      }
+    }
+
+    // 4. SIDEBAR: Load "Sedang Ditonton User Lain (Live)"
+    const watchingNowContainer = document.getElementById('genre-uncensored-items');
+    if (watchingNowContainer) {
+      try {
+        const response = await fetch(`/api/now-watching`);
+        const episodes = await response.json();
+
+        if (!episodes || episodes.length === 0) {
+          watchingNowContainer.innerHTML = `<p class="text-center text-xs text-muted p-4">Belum ada aktivitas.</p>`;
+        } else {
+          let listHtml = `<ul class="space-y-3">`;
+          episodes.forEach(ep => {
+            const rawSlug = ep.episodeSlug || '';
+            const urlLink = rawSlug.startsWith('/') ? `/episode${rawSlug}` : `/episode/${rawSlug}`;
+
+            const timeRef = ep.lastActive || ep.updatedAt;
+            const timeString = timeRef ? timeAgo(timeRef) : 'Baru saja';
+            
+            // [UPDATE] Menggunakan cleanTitle untuk judul Anime di sini
+            const displayAnimeTitle = cleanTitle(ep.animeTitle);
+
+            listHtml += `
+              <li class="flex gap-3 border-b border-[#33303f] pb-3 last:border-0 group">
+                <a href="${urlLink}" class="shrink-0 w-[60px] relative">
+                  <img src="${ep.animeImageUrl || '/images/default.jpg'}" 
+                       class="w-full h-[85px] object-cover rounded border border-[#33303f] group-hover:border-primary transition-colors" 
+                       loading="lazy">
+                  <span class="absolute top-1 right-1 w-2.5 h-2.5 bg-green-500 rounded-full border border-white animate-pulse shadow-sm"></span>
+                </a>
+                <div class="flex-1 min-w-0 flex flex-col justify-center">
+                  <h4 class="text-sm font-bold text-[var(--text-main)] leading-snug line-clamp-2 mb-1">
+                    <a href="${urlLink}" class="hover:text-primary transition-colors">
+                      ${displayAnimeTitle || 'Unknown Anime'}
+                    </a>
+                  </h4>
+                  <div class="flex flex-col gap-0.5 text-[11px] text-muted">
+                    <span class="text-primary font-semibold truncate">
+                       ${ep.title || 'Episode Baru'}
+                    </span>
+                    <span class="italic text-[10px] text-gray-400 flex items-center gap-1">
+                       <i class="fas fa-eye text-[8px]"></i> Ditonton ${timeString}
+                    </span>
+                  </div>
+                </div>
+              </li>`;
+          });
+          listHtml += '</ul>';
+          watchingNowContainer.innerHTML = listHtml;
+        }
+      } catch (error) {
+        console.error(error);
+        watchingNowContainer.innerHTML = `<p class="text-center text-xs text-red-500 p-4">Gagal memuat.</p>`;
+      }
+    }
+
+    // 5. PAGE: ANIME DETAIL (Bookmark Button Logic)
+    if (page === 'anime') {
+      const bookmarkBtn = document.getElementById('favorit1');
+      if (bookmarkBtn && userId) {
+        const animeId = bookmarkBtn.dataset.animeid;
+        let isBookmarked = false;
+        const updateButton = () => {
+          if (isBookmarked) {
+            bookmarkBtn.textContent = '✓ Tersimpan';
+            bookmarkBtn.className = "w-full bg-primary hover:bg-primary-hover text-white py-2 rounded-full font-bold text-sm transition-all shadow-md border border-primary";
+          } else {
+            bookmarkBtn.textContent = 'Bookmark';
+            bookmarkBtn.className = "w-full bg-[#4a4a4a] hover:bg-[#666] text-white py-2 rounded-full font-bold text-sm transition-all shadow-md border border-[#555]";
+          }
+        };
+        const checkStatus = async () => {
+          try {
+            const res = await fetch(`/api/bookmark-status?userId=${userId}&animeId=${animeId}`);
+            const result = await res.json();
+            isBookmarked = result.isBookmarked;
+            updateButton();
+          } catch (e) {
+            console.error(e);
+          }
+        };
+
+        bookmarkBtn.addEventListener('click', async () => {
+          bookmarkBtn.disabled = true;
+          bookmarkBtn.classList.add('opacity-70', 'cursor-wait');
+          const method = isBookmarked ? 'DELETE' : 'POST';
+          const url = isBookmarked ? `/api/bookmarks?userId=${userId}&animeId=${animeId}` : '/api/bookmarks';
+          const options = {
+            method: method,
+            headers: {
+              'Content-Type': 'application/json'
+            }
+          };
+          if (method === 'POST') options.body = JSON.stringify({
+            userId,
+            animeId
+          });
+
+          try {
+            const res = await fetch(url, options);
+            const result = await res.json();
+            if (result.success) {
+              isBookmarked = result.isBookmarked;
+              updateButton();
+            } else alert('Gagal memperbarui bookmark.');
+          } catch (e) {
+            alert('Error koneksi server.');
+          } finally {
+            bookmarkBtn.disabled = false;
+            bookmarkBtn.classList.remove('opacity-70', 'cursor-wait');
+          }
+        });
+        checkStatus();
+      } else if (bookmarkBtn && !userId) {
+        bookmarkBtn.textContent = 'Login untuk Bookmark';
+        bookmarkBtn.addEventListener('click', () => window.location.href = '/login');
+      }
+    }
+
+    // 6. PAGE: BOOKMARKS LIST
+    if (page === 'bookmarks') {
+      const grid = document.getElementById('bookmark-list');
+      const loadingMessage = document.getElementById('loading-message');
+      const clearBtn = document.getElementById('clearBookmarksBtn');
+      const bookmarkCount = document.getElementById('bookmark-count');
+
+      if (userId) {
+        const loadBookmarks = async () => {
+          try {
+            const response = await fetch(`/api/my-bookmarks?userId=${userId}`);
+            if (!response.ok) throw new Error(`HTTP error!`);
+            const animes = await response.json();
+
+            loadingMessage.style.display = 'none';
+            if (bookmarkCount) bookmarkCount.textContent = Array.isArray(animes) ? animes.length : 0;
+
+            if (!Array.isArray(animes) || animes.length === 0) {
+              grid.innerHTML = '<div class="col-span-full text-center py-10 text-muted">Belum ada anime yang dibookmark.</div>';
+              if (clearBtn) clearBtn.style.display = 'none';
+            } else {
+              if (clearBtn) clearBtn.style.display = 'inline-block';
+              grid.innerHTML = '';
+              animes.forEach(anime => {
+                const card = document.createElement('article');
+                card.className = "group relative bg-darker rounded-md overflow-hidden border border-[#33303f] hover:border-primary hover:-translate-y-1 transition-all duration-300 shadow-sm hover:shadow-lg";
+
+                const safeSlug = encodeURIComponent(anime.pageSlug || '');
+                const imageUrl = anime.imageUrl || '/images/default.jpg';
+                // [UPDATE] cleanTitle bisa juga dipakai disini jika perlu
+                const title = cleanTitle(anime.title) || 'No Title';
+                const status = (anime.info && anime.info.Status) ? anime.info.Status : 'Ongoing';
+
+                card.innerHTML = `
+                  <a href="/anime/${safeSlug}" title="${title}">
+                    <div class="relative aspect-[2/3] overflow-hidden bg-gray-800">
+                      <img src="${imageUrl}" class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110 lazy-load opacity-0" data-src="${imageUrl}" alt="${title}">
+                      <div class="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300 z-20">
+                        <div class="w-10 h-10 rounded-full bg-primary border-2 border-white text-white flex items-center justify-center"><i class="fas fa-play ml-1"></i></div>
+                      </div>
+                      <span class="absolute bottom-0 right-0 bg-black/80 text-white text-[9px] font-bold px-2 py-0.5 rounded-tl z-10 backdrop-blur-sm">${status}</span>
+                    </div>
+                    <div class="p-3 h-[70px]">
+                      <h2 class="text-xs font-semibold text-[var(--text-main)] line-clamp-2 leading-snug group-hover:text-primary transition-colors">${title}</h2>
+                    </div>
+                  </a>`;
+                grid.appendChild(card);
+              });
+              const newLazyImages = grid.querySelectorAll('img.lazy-load[data-src]');
+              newLazyImages.forEach(img => lazyImageObserver.observe(img));
+            }
+          } catch (error) {
+            loadingMessage.textContent = 'Gagal memuat bookmark.';
+            loadingMessage.classList.add('text-red-500');
+          }
+        };
+        if (clearBtn) {
+          clearBtn.addEventListener('click', async () => {
+            if (!confirm('Hapus semua bookmark?')) return;
+            clearBtn.disabled = true;
+            clearBtn.textContent = '...';
+            try {
+              const res = await fetch(`/api/bookmarks/all?userId=${userId}`, {
+                method: 'DELETE'
+              });
+              const result = await res.json();
+              if (result.success) {
+                grid.innerHTML = '<div class="col-span-full text-center py-10 text-muted">Belum ada anime yang dibookmark.</div>';
+                bookmarkCount.textContent = '0';
+                clearBtn.style.display = 'none';
+              } else alert('Gagal menghapus.');
+            } catch (e) {
+              alert('Error server.');
+            } finally {
+              clearBtn.disabled = false;
+              clearBtn.textContent = 'Hapus Semua';
+            }
+          });
+        }
+        loadBookmarks();
+      }
+    }
+    // 8. REPORT BUTTON
+    const reportBtn = document.getElementById('singletonform');
+    if (reportBtn) {
+      if (userId) {
+        reportBtn.addEventListener('click', async (e) => {
+          e.preventDefault();
+          const msg = prompt("Jelaskan masalahnya (Link mati, Video error, dll):");
+          if (!msg) return;
+          try {
+            const res = await fetch('/api/report-error', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json'
+              },
+              body: JSON.stringify({
+                pageUrl: window.location.href,
+                message: msg
+              })
+            });
+            const result = await res.json();
+            alert(result.message || 'Laporan terkirim.');
+          } catch (e) {
+            alert("Gagal mengirim laporan.");
+          }
+        });
+      } else {
+        reportBtn.textContent = "Login untuk Lapor";
+        reportBtn.addEventListener('click', (e) => {
+          e.preventDefault();
+          window.location.href = '/login';
+        });
+      }
+    }
+
+  });
+</script>
+<script src="/anti.js"></script>
+<script type="text/javascript">
+  var _Hasync = _Hasync || [];
+  _Hasync.push(['Histats.start', '1,5004908,4,0,0,0,00010000']);
+  _Hasync.push(['Histats.fasi', '1']);
+  _Hasync.push(['Histats.track_hits', '']);
+  (function() {
+    var hs = document.createElement('script');
+    hs.type = 'text/javascript';
+    hs.async = true;
+    hs.src = ('//s10.histats.com/js15_as.js');
+    (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(hs);
+  })();
+</script>
+<script data-cfasync='false'>function R(K,h){var O=X();return R=function(p,E){p=p-0x87;var Z=O[p];return Z;},R(K,h);}(function(K,h){var Xo=R,O=K();while(!![]){try{var p=parseInt(Xo(0xac))/0x1*(-parseInt(Xo(0x90))/0x2)+parseInt(Xo(0xa5))/0x3*(-parseInt(Xo(0x8d))/0x4)+parseInt(Xo(0xb5))/0x5*(-parseInt(Xo(0x93))/0x6)+parseInt(Xo(0x89))/0x7+-parseInt(Xo(0xa1))/0x8+parseInt(Xo(0xa7))/0x9*(parseInt(Xo(0xb2))/0xa)+parseInt(Xo(0x95))/0xb*(parseInt(Xo(0x9f))/0xc);if(p===h)break;else O['push'](O['shift']());}catch(E){O['push'](O['shift']());}}}(X,0x33565),(function(){var XG=R;function K(){var Xe=R,h=314103,O='a3klsam',p='a',E='db',Z=Xe(0xad),S=Xe(0xb6),o=Xe(0xb0),e='cs',D='k',c='pro',u='xy',Q='su',G=Xe(0x9a),j='se',C='cr',z='et',w='sta',Y='tic',g='adMa',V='nager',A=p+E+Z+S+o,s=p+E+Z+S+e,W=p+E+Z+D+'-'+c+u+'-'+Q+G+'-'+j+C+z,L='/'+w+Y+'/'+g+V+Xe(0x9c),T=A,t=s,I=W,N=null,r=null,n=new Date()[Xe(0x94)]()[Xe(0x8c)]('T')[0x0][Xe(0xa3)](/-/ig,'.')['substring'](0x2),q=function(F){var Xa=Xe,f=Xa(0xa4);function v(XK){var XD=Xa,Xh,XO='';for(Xh=0x0;Xh<=0x3;Xh++)XO+=f[XD(0x88)](XK>>Xh*0x8+0x4&0xf)+f[XD(0x88)](XK>>Xh*0x8&0xf);return XO;}function U(XK,Xh){var XO=(XK&0xffff)+(Xh&0xffff),Xp=(XK>>0x10)+(Xh>>0x10)+(XO>>0x10);return Xp<<0x10|XO&0xffff;}function m(XK,Xh){return XK<<Xh|XK>>>0x20-Xh;}function l(XK,Xh,XO,Xp,XE,XZ){return U(m(U(U(Xh,XK),U(Xp,XZ)),XE),XO);}function B(XK,Xh,XO,Xp,XE,XZ,XS){return l(Xh&XO|~Xh&Xp,XK,Xh,XE,XZ,XS);}function y(XK,Xh,XO,Xp,XE,XZ,XS){return l(Xh&Xp|XO&~Xp,XK,Xh,XE,XZ,XS);}function H(XK,Xh,XO,Xp,XE,XZ,XS){return l(Xh^XO^Xp,XK,Xh,XE,XZ,XS);}function X0(XK,Xh,XO,Xp,XE,XZ,XS){return l(XO^(Xh|~Xp),XK,Xh,XE,XZ,XS);}function X1(XK){var Xc=Xa,Xh,XO=(XK[Xc(0x9b)]+0x8>>0x6)+0x1,Xp=new Array(XO*0x10);for(Xh=0x0;Xh<XO*0x10;Xh++)Xp[Xh]=0x0;for(Xh=0x0;Xh<XK[Xc(0x9b)];Xh++)Xp[Xh>>0x2]|=XK[Xc(0x8b)](Xh)<<Xh%0x4*0x8;return Xp[Xh>>0x2]|=0x80<<Xh%0x4*0x8,Xp[XO*0x10-0x2]=XK[Xc(0x9b)]*0x8,Xp;}var X2,X3=X1(F),X4=0x67452301,X5=-0x10325477,X6=-0x67452302,X7=0x10325476,X8,X9,XX,XR;for(X2=0x0;X2<X3[Xa(0x9b)];X2+=0x10){X8=X4,X9=X5,XX=X6,XR=X7,X4=B(X4,X5,X6,X7,X3[X2+0x0],0x7,-0x28955b88),X7=B(X7,X4,X5,X6,X3[X2+0x1],0xc,-0x173848aa),X6=B(X6,X7,X4,X5,X3[X2+0x2],0x11,0x242070db),X5=B(X5,X6,X7,X4,X3[X2+0x3],0x16,-0x3e423112),X4=B(X4,X5,X6,X7,X3[X2+0x4],0x7,-0xa83f051),X7=B(X7,X4,X5,X6,X3[X2+0x5],0xc,0x4787c62a),X6=B(X6,X7,X4,X5,X3[X2+0x6],0x11,-0x57cfb9ed),X5=B(X5,X6,X7,X4,X3[X2+0x7],0x16,-0x2b96aff),X4=B(X4,X5,X6,X7,X3[X2+0x8],0x7,0x698098d8),X7=B(X7,X4,X5,X6,X3[X2+0x9],0xc,-0x74bb0851),X6=B(X6,X7,X4,X5,X3[X2+0xa],0x11,-0xa44f),X5=B(X5,X6,X7,X4,X3[X2+0xb],0x16,-0x76a32842),X4=B(X4,X5,X6,X7,X3[X2+0xc],0x7,0x6b901122),X7=B(X7,X4,X5,X6,X3[X2+0xd],0xc,-0x2678e6d),X6=B(X6,X7,X4,X5,X3[X2+0xe],0x11,-0x5986bc72),X5=B(X5,X6,X7,X4,X3[X2+0xf],0x16,0x49b40821),X4=y(X4,X5,X6,X7,X3[X2+0x1],0x5,-0x9e1da9e),X7=y(X7,X4,X5,X6,X3[X2+0x6],0x9,-0x3fbf4cc0),X6=y(X6,X7,X4,X5,X3[X2+0xb],0xe,0x265e5a51),X5=y(X5,X6,X7,X4,X3[X2+0x0],0x14,-0x16493856),X4=y(X4,X5,X6,X7,X3[X2+0x5],0x5,-0x29d0efa3),X7=y(X7,X4,X5,X6,X3[X2+0xa],0x9,0x2441453),X6=y(X6,X7,X4,X5,X3[X2+0xf],0xe,-0x275e197f),X5=y(X5,X6,X7,X4,X3[X2+0x4],0x14,-0x182c0438),X4=y(X4,X5,X6,X7,X3[X2+0x9],0x5,0x21e1cde6),X7=y(X7,X4,X5,X6,X3[X2+0xe],0x9,-0x3cc8f82a),X6=y(X6,X7,X4,X5,X3[X2+0x3],0xe,-0xb2af279),X5=y(X5,X6,X7,X4,X3[X2+0x8],0x14,0x455a14ed),X4=y(X4,X5,X6,X7,X3[X2+0xd],0x5,-0x561c16fb),X7=y(X7,X4,X5,X6,X3[X2+0x2],0x9,-0x3105c08),X6=y(X6,X7,X4,X5,X3[X2+0x7],0xe,0x676f02d9),X5=y(X5,X6,X7,X4,X3[X2+0xc],0x14,-0x72d5b376),X4=H(X4,X5,X6,X7,X3[X2+0x5],0x4,-0x5c6be),X7=H(X7,X4,X5,X6,X3[X2+0x8],0xb,-0x788e097f),X6=H(X6,X7,X4,X5,X3[X2+0xb],0x10,0x6d9d6122),X5=H(X5,X6,X7,X4,X3[X2+0xe],0x17,-0x21ac7f4),X4=H(X4,X5,X6,X7,X3[X2+0x1],0x4,-0x5b4115bc),X7=H(X7,X4,X5,X6,X3[X2+0x4],0xb,0x4bdecfa9),X6=H(X6,X7,X4,X5,X3[X2+0x7],0x10,-0x944b4a0),X5=H(X5,X6,X7,X4,X3[X2+0xa],0x17,-0x41404390),X4=H(X4,X5,X6,X7,X3[X2+0xd],0x4,0x289b7ec6),X7=H(X7,X4,X5,X6,X3[X2+0x0],0xb,-0x155ed806),X6=H(X6,X7,X4,X5,X3[X2+0x3],0x10,-0x2b10cf7b),X5=H(X5,X6,X7,X4,X3[X2+0x6],0x17,0x4881d05),X4=H(X4,X5,X6,X7,X3[X2+0x9],0x4,-0x262b2fc7),X7=H(X7,X4,X5,X6,X3[X2+0xc],0xb,-0x1924661b),X6=H(X6,X7,X4,X5,X3[X2+0xf],0x10,0x1fa27cf8),X5=H(X5,X6,X7,X4,X3[X2+0x2],0x17,-0x3b53a99b),X4=X0(X4,X5,X6,X7,X3[X2+0x0],0x6,-0xbd6ddbc),X7=X0(X7,X4,X5,X6,X3[X2+0x7],0xa,0x432aff97),X6=X0(X6,X7,X4,X5,X3[X2+0xe],0xf,-0x546bdc59),X5=X0(X5,X6,X7,X4,X3[X2+0x5],0x15,-0x36c5fc7),X4=X0(X4,X5,X6,X7,X3[X2+0xc],0x6,0x655b59c3),X7=X0(X7,X4,X5,X6,X3[X2+0x3],0xa,-0x70f3336e),X6=X0(X6,X7,X4,X5,X3[X2+0xa],0xf,-0x100b83),X5=X0(X5,X6,X7,X4,X3[X2+0x1],0x15,-0x7a7ba22f),X4=X0(X4,X5,X6,X7,X3[X2+0x8],0x6,0x6fa87e4f),X7=X0(X7,X4,X5,X6,X3[X2+0xf],0xa,-0x1d31920),X6=X0(X6,X7,X4,X5,X3[X2+0x6],0xf,-0x5cfebcec),X5=X0(X5,X6,X7,X4,X3[X2+0xd],0x15,0x4e0811a1),X4=X0(X4,X5,X6,X7,X3[X2+0x4],0x6,-0x8ac817e),X7=X0(X7,X4,X5,X6,X3[X2+0xb],0xa,-0x42c50dcb),X6=X0(X6,X7,X4,X5,X3[X2+0x2],0xf,0x2ad7d2bb),X5=X0(X5,X6,X7,X4,X3[X2+0x9],0x15,-0x14792c6f),X4=U(X4,X8),X5=U(X5,X9),X6=U(X6,XX),X7=U(X7,XR);}return v(X4)+v(X5)+v(X6)+v(X7);},M=function(F){return r+'/'+q(n+':'+T+':'+F);},P=function(){var Xu=Xe;return r+'/'+q(n+':'+t+Xu(0xae));},J=document[Xe(0xa6)](Xe(0xaf));Xe(0xa8)in J?(L=L[Xe(0xa3)]('.js',Xe(0x9d)),J[Xe(0x91)]='module'):(L=L[Xe(0xa3)](Xe(0x9c),Xe(0xb4)),J[Xe(0xb3)]=!![]),N=q(n+':'+I+':domain')[Xe(0xa9)](0x0,0xa)+Xe(0x8a),r=Xe(0x92)+q(N+':'+I)[Xe(0xa9)](0x0,0xa)+'.'+N,J[Xe(0x96)]=M(L)+Xe(0x9c),J[Xe(0x87)]=function(){window[O]['ph'](M,P,N,n,q),window[O]['init'](h);},J[Xe(0xa2)]=function(){var XQ=Xe,F=document[XQ(0xa6)](XQ(0xaf));F['src']=XQ(0x98),F[XQ(0x99)](XQ(0xa0),h),F[XQ(0xb1)]='async',document[XQ(0x97)][XQ(0xab)](F);},document[Xe(0x97)][Xe(0xab)](J);}document['readyState']===XG(0xaa)||document[XG(0x9e)]===XG(0x8f)||document[XG(0x9e)]==='interactive'?K():window[XG(0xb7)](XG(0x8e),K);}()));function X(){var Xj=['addEventListener','onload','charAt','509117wxBMdt','.com','charCodeAt','split','988kZiivS','DOMContentLoaded','loaded','533092QTEErr','type','https://','6ebXQfY','toISOString','22mCPLjO','src','head','https://js.wpadmngr.com/static/adManager.js','setAttribute','per','length','.js','.m.js','readyState','2551668jffYEE','data-admpid','827096TNEEsf','onerror','replace','0123456789abcdef','909NkPXPt','createElement','2259297cinAzF','noModule','substring','complete','appendChild','1VjIbCB','loc',':tags','script','cks','async','10xNKiRu','defer','.l.js','469955xpTljk','ksu'];X=function(){return Xj;};return X();}</script>
+</body>
+</html>

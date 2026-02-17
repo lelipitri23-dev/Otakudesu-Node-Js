@@ -1,0 +1,168 @@
+<%- include('../admin/partials/header', { /* data header */ }) %>
+<a href="/admin" class="admin-back-btn">« Kembali ke Dasbor</a>
+<h1>Edit Anime: <%= anime.title %></h1>
+
+<style>
+    .admin-back-btn { display: inline-block; margin-bottom: 20px; padding: 6px 12px; background-color: #555; color: #fff !important; border-radius: 4px; font-size: 0.9em; font-weight: bold; text-decoration: none; }
+    .admin-back-btn:hover { background-color: #666; text-decoration: none; }
+    .admin-form { margin-bottom: 30px; }
+    .admin-form label { display: block; margin-bottom: 5px; font-weight: bold; color: #ddd; }
+    .admin-form input[type="text"], .admin-form textarea, .admin-form input[type="number"] { width: 100%; padding: 8px; margin-bottom: 15px; background-color: #444; border: 1px solid #666; color: #eee; border-radius: 4px; }
+    .admin-form textarea { min-height: 150px; }
+    .admin-form button { padding: 10px 20px; background-color: #4CAF50; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 1em; }
+    .admin-form button:hover { background-color: #45a049; }
+    .required-field::after { content: " *"; color: red; }
+    
+    /* Grid system sederhana untuk Info Detail agar lebih rapi */
+    .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
+    @media (max-width: 768px) { .info-grid { grid-template-columns: 1fr; } }
+    
+    .btn-danger { background-color: #d9534f !important; color: white; border: none; padding: 4px 8px; font-size: 0.9em; border-radius: 4px; cursor: pointer; }
+</style>
+
+<% if (anime) { %>
+
+    <%# --- FORM UTAMA: EDIT ANIME --- %>
+    <form class="admin-form" id="mainAnimeForm" action="/admin/anime/<%= anime.pageSlug %>/edit" method="POST">
+        <h2>Detail Utama</h2>
+        
+        <div>
+            <label for="title" class="required-field">Judul Utama:</label>
+            <input type="text" id="title" name="title" value="<%= anime.title || '' %>" required>
+        </div>
+        
+        <div>
+            <label for="pageSlug">Slug (URL Permanent):</label>
+            <input type="text" id="pageSlug" name="pageSlug" value="<%= anime.pageSlug || '' %>" readonly style="background-color: #333; cursor: not-allowed;">
+            <small style="color: #aaa; display: block; margin-top: -10px; margin-bottom: 10px;">Slug tidak bisa diubah karena akan merusak SEO link yang sudah ada.</small>
+        </div>
+
+        <div>
+            <label for="imageUrl">URL Poster/Gambar:</label>
+            <input type="text" id="imageUrl" name="imageUrl" value="<%= anime.imageUrl || '' %>">
+            <% if(anime.imageUrl) { %>
+                <img src="<%= anime.imageUrl %>" alt="Preview" style="max-height: 150px; margin-top: 5px; border-radius: 5px; border: 1px solid #555;">
+            <% } %>
+        </div>
+        
+        <div>
+            <label for="synopsis">Sinopsis:</label>
+            <textarea id="synopsis" name="synopsis"><%= anime.synopsis || '' %></textarea>
+        </div>
+
+        <div style="background: #333; padding: 10px; border-radius: 5px; margin-bottom: 20px;">
+            <label style="margin-bottom: 0;">Total Views:</label>
+            <span style="font-size: 1.2em; font-weight: bold; color: #5bc0de;"><%= anime.viewCount || 0 %></span>
+        </div>
+
+        <hr style="margin: 20px 0; border-color: #555;">
+        
+        <h3>Info Detail Lengkap</h3>
+        <div class="info-grid">
+            <div>
+                <label for="info.Alternatif">Judul Alternatif (Jepang/Lainnya):</label>
+                <input type="text" id="info.Alternatif" name="info.Alternatif" value="<%= anime.info?.Alternatif || '' %>">
+            </div>
+            <div>
+                <label for="info.Type">Tipe (TV/OVA/Movie):</label>
+                <input type="text" id="info.Type" name="info.Type" value="<%= anime.info?.Type || '' %>" placeholder="Contoh: TV">
+            </div>
+            <div>
+                <label for="info.Status">Status:</label>
+                <input type="text" id="info.Status" name="info.Status" value="<%= anime.info?.Status || '' %>" placeholder="Contoh: Ongoing / Completed">
+            </div>
+            <div>
+                <label for="info.Episode">Total Episode:</label>
+                <input type="text" id="info.Episode" name="info.Episode" value="<%= anime.info?.Episode || '' %>" placeholder="Contoh: 12 / ?">
+            </div>
+            <div>
+                <label for="info.Released">Tahun/Tanggal Rilis:</label>
+                <input type="text" id="info.Released" name="info.Released" value="<%= anime.info?.Released || '' %>">
+            </div>
+            <div>
+                <label for="info.Duration">Durasi per Episode:</label>
+                <input type="text" id="info.Duration" name="info.Duration" value="<%= anime.info?.Duration || '' %>" placeholder="Contoh: 24 min">
+            </div>
+            <div>
+                <label for="info.Score">Score (Rating):</label>
+                <input type="text" id="info.Score" name="info.Score" value="<%= anime.info?.Score || '' %>" placeholder="Contoh: 8.54">
+            </div>
+            <div>
+                <label for="info.Studio">Studio:</label>
+                <input type="text" id="info.Studio" name="info.Studio" value="<%= anime.info?.Studio || '' %>">
+            </div>
+        </div>
+        
+        <div>
+            <label for="info.Producers">Producers:</label>
+            <input type="text" id="info.Producers" name="info.Producers" value="<%= anime.info?.Producers || '' %>">
+        </div>
+
+        <hr style="margin: 20px 0; border-color: #555;">
+        
+        <h3>Genre</h3>
+        <div>
+            <label for="genres">Genre (Pisahkan dengan koma):</label>
+            <input type="text" id="genres" name="genres" value="<%= anime.genres ? anime.genres.join(', ') : '' %>" placeholder="Action, Adventure, Fantasy">
+        </div>
+
+        <button type="submit">Update Detail Anime</button>
+    </form>
+
+
+    <hr style="margin: 40px 0; border-color: #555; border-width: 2px;">
+
+
+    <%# --- FORM KEDUA: TAMBAH EPISODE --- %>
+    <h2>Tambah Episode Baru</h2>
+    <form class="admin-form" action="/admin/anime/<%= anime.pageSlug %>/episodes/add" method="POST" style="background: #333; padding: 20px; border-radius: 8px;">
+        <div>
+            <label for="episodeTitle" class="required-field">Judul Episode:</label>
+            <input type="text" id="episodeTitle" name="episodeTitle" required placeholder="Contoh: One Piece Episode 1">
+        </div>
+        <div>
+            <label for="episodeSlug" class="required-field">Nomor/Slug Episode:</label>
+            <input type="text" id="episodeSlug" name="episodeSlug" placeholder="Contoh: 1" required>
+            <small style="color: #aaa; display: block; margin-top: -10px; margin-bottom: 10px;">
+                Cukup ketik nomornya saja (misal: <b>1</b>). Sistem otomatis membuat slug: <b><%= anime.pageSlug %>-episode-1</b>
+            </small>
+        </div>
+        <div>
+            <label for="episodeDate">Tanggal Rilis:</label>
+            <input type="text" id="episodeDate" name="episodeDate" value="<%= new Date().toLocaleDateString('id-ID', { day: '2-digit', month: 'long', year: 'numeric' }) %>">
+        </div>
+
+        <button type="submit" style="background-color: #5bc0de; margin-top: 10px;">+ Tambah Episode Ini</button>
+    </form>
+
+    <hr style="margin: 40px 0; border-color: #555;">
+
+    <h2>Daftar Episode (<%= anime.episodes ? anime.episodes.length : 0 %>)</h2>
+    <% if (anime.episodes && anime.episodes.length > 0) { %>
+        <ul style="list-style: none; padding: 0; max-height: 600px; overflow-y: auto; background: #222; padding: 10px; border-radius: 5px; border: 1px solid #444;">
+            <% anime.episodes.forEach(ep => { %>
+                <li style="display: flex; justify-content: space-between; align-items: center; padding: 10px; border-bottom: 1px solid #444;">
+                    <span style="max-width: 60%;">
+                        <strong style="color: #fff;"><%= ep.title %></strong><br>
+                        <small style="color: #aaa;">Slug: <%= ep.url %></small><br>
+                        <small style="color: #888;">Date: <%= ep.date %></small>
+                    </span>
+                    <span style="flex-shrink: 0;">
+                        <a href="/admin/episode/<%= ep.url %>/edit" target="_blank" style="color: #5bc0de; margin-right: 15px; font-weight: bold; text-decoration: none;">Edit</a>
+            
+                        <form action="/admin/episode/<%= ep.url %>/delete" method="POST" style="display: inline-block;" onsubmit="return confirm('Yakin ingin menghapus episode ini?');">
+                            <button type="submit" class="btn-danger">Hapus</button>
+                        </form>
+                    </span>
+                </li>
+            <% }) %>
+        </ul>
+    <% } else { %>
+        <p style="background: #333; padding: 15px; border-radius: 5px;">Belum ada episode untuk anime ini.</p>
+    <% } %>
+
+<% } else { %>
+    <p>Anime tidak ditemukan.</p>
+<% } %>
+
+<%- include('../admin/partials/footer', { page: page }) %>

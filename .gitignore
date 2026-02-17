@@ -1,0 +1,47 @@
+# --- Dependencies ---
+node_modules/
+package-lock.json
+# ^ Hapus package-lock.json dari daftar ini jika Anda ingin mengunci versi dependency
+
+# --- Environment Variables (PENTING: Jangan di-upload) ---
+.env
+.env.local
+.env.production
+.env.development
+
+# --- Logs ---
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pm2.log
+pm2-error.log
+
+# Abaikan file backup database JSON hasil export admin
+backup_*.json
+
+# Abaikan file input text jika tidak ingin membagikan list slug
+# all_slugs_cv.txt
+
+# --- OS & IDE Files ---
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+*.swp
+
+# --- Build & Runtime ---
+pids
+*.pid
+*.seed
+*.pid.lock
+batch_importer.js
+batch_scrape_episodes.js
+delete.js
+scraperUtilsCv.js
+all_slugs_cv.txt
+url.txt
+migrateImages.js
+title.js
+auto_update_episodes.js
